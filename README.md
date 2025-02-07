@@ -1,84 +1,157 @@
-# Turborepo starter
+# AI Startup Simulation
 
-This Turborepo starter is maintained by the Turborepo core team.
+A real-time simulation of an AI-powered startup where multiple AI agents collaborate, make decisions, and execute tasks in a virtual office environment.
 
-## Using this example
+## Project Overview
 
-Run the following command:
+This project simulates a startup environment where AI agents (CEO, CTO, Engineers, Marketers, Sales) work together in different virtual rooms. Users can observe and interact with these agents as they generate and execute tasks, make decisions, and collaborate in real-time.
 
-```sh
-npx create-turbo@latest
-```
+## Tech Stack
 
-## What's inside?
+### Frontend
+- Vite + React
+- PixiJS (2D rendering)
+- Socket.io Client (real-time communication)
+- Mantine UI (components)
+- Zustand (state management)
+- React Query (data fetching)
 
-This Turborepo includes the following packages/apps:
+### Backend
+- NestJS
+- Socket.io (WebSocket)
+- Bull (job/task queue)
+- TypeORM + PostgreSQL
+- Redis
+- JWT Authentication
 
-### Apps and Packages
+### Shared
+- TypeScript
+- Common types and interfaces
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## Project Structure
 
 ```
-cd my-turborepo
-pnpm build
+ai-startup/
+├── apps/
+│   ├── frontend/        # Vite + React frontend
+│   └── backend/         # NestJS backend
+├── packages/
+│   └── shared/          # Shared TypeScript types
+└── docker-compose.yml   # Development services
 ```
 
-### Develop
+## Setup Instructions
 
-To develop all apps and packages, run the following command:
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```
-cd my-turborepo
-pnpm dev
-```
+2. Start development services:
+   ```bash
+   docker-compose up -d
+   ```
 
-### Remote Caching
+3. Build shared package:
+   ```bash
+   cd packages/shared
+   npm run build
+   ```
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+4. Start development servers:
+   ```bash
+   npm run dev
+   ```
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+## Development Roadmap
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+### Phase 1: Foundation Setup ✅
+- [x] Initialize monorepo structure
+- [x] Set up shared types package
+- [x] Configure Docker services (PostgreSQL, Redis)
+- [x] Basic project documentation
 
-```
-cd my-turborepo
-npx turbo login
-```
+### Phase 2: Backend Infrastructure
+- [ ] Database Schema and Migrations
+  - [ ] Agent entities
+  - [ ] Task management
+  - [ ] Room system
+  - [ ] Message history
+- [ ] Authentication System
+  - [ ] JWT implementation
+  - [ ] User registration/login
+- [ ] WebSocket Setup
+  - [ ] Real-time communication gateway
+  - [ ] Room-based connections
+  - [ ] Message broadcasting
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### Phase 3: AI Agent System
+- [ ] Agent Management
+  - [ ] Agent state machine
+  - [ ] Decision-making system
+  - [ ] Task generation and execution
+- [ ] Task Queue Implementation
+  - [ ] Bull queue setup
+  - [ ] Task processors
+  - [ ] Priority handling
+- [ ] Collaboration System
+  - [ ] Agent communication
+  - [ ] Decision voting mechanism
+  - [ ] Break time management
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### Phase 4: Frontend Development
+- [ ] UI Framework Setup
+  - [ ] Mantine UI integration
+  - [ ] Responsive layout
+  - [ ] Theme system
+- [ ] 2D Visualization
+  - [ ] PixiJS integration
+  - [ ] Room rendering
+  - [ ] Agent sprites and animations
+  - [ ] Speech bubbles
+- [ ] Real-time Updates
+  - [ ] WebSocket integration
+  - [ ] State management
+  - [ ] Task board
+  - [ ] Chat system
 
-```
-npx turbo link
-```
+### Phase 5: Integration Features
+- [ ] External API Integration
+  - [ ] GitHub integration
+  - [ ] Notion integration
+  - [ ] PostHog analytics
+- [ ] User Controls
+  - [ ] Agent direction override
+  - [ ] Task management interface
+  - [ ] Settings and preferences
 
-## Useful Links
+### Phase 6: Polish and Optimization
+- [ ] Performance Optimization
+  - [ ] Caching strategy
+  - [ ] Database indexing
+  - [ ] WebSocket message batching
+- [ ] UI/UX Improvements
+  - [ ] Loading states
+  - [ ] Error handling
+  - [ ] Animations and transitions
+- [ ] Testing
+  - [ ] Unit tests
+  - [ ] Integration tests
+  - [ ] E2E tests
 
-Learn more about the power of Turborepo:
+## Available Scripts
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+- `npm run dev` - Start development servers
+- `npm run build` - Build all packages and applications
+- `npm run lint` - Run linting
+- `npm run test` - Run tests (when implemented)
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+ISC
