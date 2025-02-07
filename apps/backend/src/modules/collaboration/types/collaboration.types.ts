@@ -26,9 +26,19 @@ export interface CollaborationSession {
   participants: Agent[];
   status: CollaborationStatus;
   context: CollaborationContext;
-  votes?: Record<string, any>;
-  outcome?: Record<string, any>;
-  startTime?: Date;
+  votes: Array<{
+    agentId: string;
+    vote: VoteType;
+    reason: string;
+    timestamp: Date;
+  }>;
+  outcome?: {
+    decision: string;
+    reasoning: string;
+    actionItems: string[];
+    timestamp: Date;
+  };
+  startTime: Date;
   endTime?: Date;
   metadata?: Record<string, any>;
   createdAt: Date;
@@ -39,7 +49,7 @@ export interface CollaborationRequest {
   type: CollaborationType;
   initiatorId: string;
   participantIds: string[];
-  context: Record<string, any>;
+  context: CollaborationContext;
   metadata?: Record<string, any>;
 }
 
@@ -54,25 +64,28 @@ export interface VotingSession {
   collaboration: CollaborationSession;
   topic: string;
   description: string;
-  options: {
+  options: Array<{
     id: string;
     description: string;
     pros?: string[];
     cons?: string[];
-  }[];
-  votes: {
+  }>;
+  votes: Array<{
     agentId: string;
     optionId: string;
     confidence: number;
     reasoning: string;
     timestamp: Date;
-  }[];
+  }>;
   status: VotingStatus;
   deadline: Date;
   result?: {
     selectedOptionId: string;
     consensusLevel: number;
-    dissentingOpinions?: string[];
+    dissent: Array<{
+      agentId: string;
+      reason: string;
+    }>;
   };
   createdAt: Date;
   updatedAt: Date;

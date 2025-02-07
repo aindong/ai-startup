@@ -43,7 +43,12 @@ export class CollaborationController {
     data: {
       topic: string;
       description: string;
-      options: VotingSession['options'];
+      options: Array<{
+        id: string;
+        description: string;
+        pros: string[];
+        cons: string[];
+      }>;
       durationMinutes: number;
     },
   ): Promise<VotingSession> {

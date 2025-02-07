@@ -5,6 +5,7 @@ import { Agent } from '../entities/agent.entity';
 import { CreateAgentDto, UpdateAgentDto } from '../dto/agent.dto';
 import { AgentStateService } from './agent-state.service';
 import { AgentDecisionService } from './agent-decision.service';
+import { AgentState } from '../types/agent-state.types';
 
 @Injectable()
 export class AgentsService {
@@ -18,7 +19,7 @@ export class AgentsService {
   async create(createAgentDto: CreateAgentDto): Promise<Agent> {
     const agent = this.agentRepository.create({
       ...createAgentDto,
-      state: 'IDLE',
+      state: 'IDLE' as AgentState,
       metrics: {
         productivity: 0,
         collaboration: 0,
