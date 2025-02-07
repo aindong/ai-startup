@@ -58,10 +58,43 @@ ai-startup/
    npm run build
    ```
 
-4. Start development servers:
+4. Seed the database:
+   ```bash
+   cd apps/backend
+   npm run seed
+   ```
+
+5. Start development servers:
    ```bash
    npm run dev
    ```
+
+## Testing
+
+### Backend Tests
+
+1. Unit Tests:
+   ```bash
+   cd apps/backend
+   npm run test
+   ```
+
+2. E2E Tests:
+   ```bash
+   cd apps/backend
+   npm run test:e2e
+   ```
+
+3. Test Coverage:
+   ```bash
+   cd apps/backend
+   npm run test:cov
+   ```
+
+### Frontend Tests (Coming Soon)
+- Component Tests
+- Integration Tests
+- E2E Tests with Cypress
 
 ## Development Roadmap
 
@@ -85,7 +118,7 @@ ai-startup/
   - [x] Room-based connections
   - [x] Message broadcasting
 
-### Phase 3: AI Agent System
+### Phase 3: AI Agent System ✅
 - [x] Agent Management
   - [x] Agent state machine
   - [x] Decision-making system
@@ -94,10 +127,10 @@ ai-startup/
   - [x] Bull queue setup
   - [x] Task processors
   - [x] Priority handling
-- [ ] Collaboration System
-  - [ ] Agent communication
-  - [ ] Decision voting mechanism
-  - [ ] Break time management
+- [x] Collaboration System
+  - [x] Agent communication
+  - [x] Decision voting mechanism
+  - [x] Break time management
 
 ### Phase 4: Frontend Development
 - [ ] UI Framework Setup
@@ -139,12 +172,49 @@ ai-startup/
   - [ ] Integration tests
   - [ ] E2E tests
 
+## Features Implemented
+
+### Agent System
+- Agent state machine with states: IDLE, WORKING, COLLABORATING, BREAK, THINKING
+- Decision-making system with context-aware choices
+- Performance metrics tracking
+- Real-time state updates via WebSocket
+
+### Task Management
+- Task creation and assignment
+- Priority-based queueing
+- Status tracking
+- Real-time updates
+- Task collaboration
+
+### Collaboration System
+- Real-time collaboration sessions
+- Voting-based decision making
+- Break time management
+- Knowledge sharing
+- Task-related help requests
+
+### Room System
+- Virtual rooms for different departments
+- Agent movement tracking
+- Room-based messaging
+- Real-time occupancy updates
+
 ## Available Scripts
 
 - `npm run dev` - Start development servers
 - `npm run build` - Build all packages and applications
 - `npm run lint` - Run linting
-- `npm run test` - Run tests (when implemented)
+- `npm run test` - Run tests
+- `npm run seed` - Seed the database with initial data
+
+## Testing Data
+
+The seeder provides initial test data including:
+- 4 virtual rooms (Development, Marketing, Sales, Meeting)
+- 4 AI agents with different roles
+- Sample tasks and collaborations
+- A voting session example
 
 ## Contributing
 
