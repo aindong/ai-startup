@@ -1,0 +1,38 @@
+# Cursor IDE Rules
+
+## Remember Mistakes
+- **Always track and remember previous mistakes** made during coding sessions. This includes:
+  - Logic errors
+  - Inefficiencies
+  - Violations of coding best practices
+- **Ensure** similar errors are not repeated in future coding sessions.
+
+## Best Practices
+
+### KISS (Keep It Simple, Stupid)
+- **Principle**: Write code that is as simple as possible. Avoid over-complicating solutions.
+- **Implementation**:
+  - Avoid complex, nested logic.
+  - Keep functions and methods small and focused.
+  - Prioritize clarity and readability over cleverness.
+
+### DRY (Don't Repeat Yourself)
+- **Principle**: Avoid duplication of logic or code.
+- **Implementation**:
+  - If code appears in multiple places, refactor it into a reusable function or method.
+  - Use libraries or modules to abstract commonly used functionality.
+  - Apply the **"Once and Only Once"** rule.
+
+### SOLID Principles
+- **Principle**: Follow the SOLID principles for better object-oriented design.
+- **Principles**:
+  1. **Single Responsibility Principle**: A class should have only one reason to change.
+  2. **Open/Closed Principle**: Software entities should be open for extension but closed for modification.
+  3. **Liskov Substitution Principle**: Objects of a superclass should be replaceable with objects of a subclass.
+  4. **Interface Segregation Principle**: No client should be forced to depend on methods it does not use.
+  5. **Dependency Inversion Principle**: High-level modules should not depend on low-level modules, but both should depend on abstractions.
+
+## Additional Guidelines
+- **Modularize code**: Break down larger tasks into smaller, reusable functions or modules.
+- **Optimize for maintainability**: Ensure that anyone reading the code (including future you) can easily understand, maintain, and extend it.
+- **Error handling**: Make sure that errors are gracefully handled and communicated clearly.
