@@ -8,9 +8,9 @@ export class WebSocketService {
 
   constructor() {
     // Initialize socket connections
-    this.agentsSocket = io('http://localhost:3000/agents');
-    this.roomsSocket = io('http://localhost:3000/rooms');
-    this.tasksSocket = io('http://localhost:3000/tasks');
+    this.agentsSocket = io('http://localhost:3001/agents');
+    this.roomsSocket = io('http://localhost:3001/rooms');
+    this.tasksSocket = io('http://localhost:3001/tasks');
   }
 
   // Agent events
