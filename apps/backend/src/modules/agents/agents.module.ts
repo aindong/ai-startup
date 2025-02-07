@@ -1,15 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Agent } from './entities/agent.entity';
-import { AgentsService } from './agents.service';
-import { AgentsController } from './agents.controller';
+import { AgentTask } from '../tasks/entities/agent-task.entity';
+import { AgentsService } from './services/agents.service';
+import { AgentsController } from './controllers/agents.controller';
+import { AgentStateService } from './services/agent-state.service';
+import { AgentDecisionService } from './services/agent-decision.service';
 import { AgentsGateway } from './agents.gateway';
-import { AuthModule } from '../auth/auth.module';
+import { TasksModule } from '../tasks/tasks.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Agent]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Agent, AgentTask]), TasksModule],
   controllers: [AgentsController],
-  providers: [AgentsService, AgentsGateway],
-  exports: [AgentsService],
+  providers: [
+    AgentsService,
+    AgentStateService,
+    AgentDecisionService,
+    AgentsGateway,
+  ],
+  exports: [AgentsService, AgentStateService, AgentDecisionService],
 })
 export class AgentsModule {}

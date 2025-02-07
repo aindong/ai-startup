@@ -1,9 +1,19 @@
-import { Column, Entity, OneToMany } from 'typeorm';
-import { BaseEntity } from '../../../common/entities/base.entity';
-import { AgentMessage } from '../../../modules/messages/entities/agent-message.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Agent } from '../../agents/entities/agent.entity';
+import { Message } from '../../messages/entities/message.entity';
 
-@Entity('rooms')
-export class Room extends BaseEntity {
+@Entity()
+export class Room {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
   @Column()
   name: string;
 
@@ -13,6 +23,15 @@ export class Room extends BaseEntity {
   })
   type: 'DEVELOPMENT' | 'MARKETING' | 'SALES' | 'MEETING';
 
-  @OneToMany(() => AgentMessage, (message) => message.room)
-  messages: AgentMessage[];
+  @OneToMany(() => Agent, (agent) => agent.currentRoom)
+  agents: Agent[];
+
+  @OneToMany(() => Message, (message) => message.room)
+  messages: Message[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

@@ -17,8 +17,8 @@ export class AgentTask extends BaseEntity {
   })
   status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
 
-  @ManyToOne(() => Agent, (agent) => agent.tasks)
-  assignedTo: Agent;
+  @ManyToOne(() => Agent, (agent) => agent.tasks, { nullable: true })
+  assignedTo: Agent | null;
 
   @ManyToOne(() => Agent)
   createdBy: Agent;
@@ -29,4 +29,7 @@ export class AgentTask extends BaseEntity {
     default: 'MEDIUM',
   })
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
+
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
 }
