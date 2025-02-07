@@ -1,0 +1,81 @@
+import { Agent } from '../../agents/entities/agent.entity';
+
+export type CollaborationType =
+  | 'TASK_HELP'
+  | 'DECISION_MAKING'
+  | 'KNOWLEDGE_SHARING';
+export type VoteType = 'APPROVE' | 'REJECT' | 'ABSTAIN';
+export type CollaborationStatus =
+  | 'PENDING'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'CANCELLED';
+export type VotingStatus = 'OPEN' | 'CLOSED';
+
+export interface CollaborationSession {
+  id: string;
+  type: CollaborationType;
+  initiator: Agent;
+  participants: Agent[];
+  status: CollaborationStatus;
+  context: Record<string, any>;
+  votes?: Record<string, any>;
+  outcome?: Record<string, any>;
+  startTime?: Date;
+  endTime?: Date;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CollaborationRequest {
+  type: CollaborationType;
+  initiatorId: string;
+  participantIds: string[];
+  context: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+export interface CollaborationResponse {
+  agentId: string;
+  response: VoteType;
+  reasoning?: string;
+}
+
+export interface VotingSession {
+  id: string;
+  collaboration: CollaborationSession;
+  topic: string;
+  description: string;
+  options: {
+    id: string;
+    description: string;
+    pros?: string[];
+    cons?: string[];
+  }[];
+  votes: {
+    agentId: string;
+    optionId: string;
+    confidence: number;
+    reasoning: string;
+    timestamp: Date;
+  }[];
+  status: VotingStatus;
+  deadline: Date;
+  result?: {
+    selectedOptionId: string;
+    consensusLevel: number;
+    dissentingOpinions?: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BreakRequest {
+  agentId: string;
+  duration: number; // in minutes
+  reason: string;
+  urgency: 'LOW' | 'MEDIUM' | 'HIGH';
+  impactedTasks: string[];
+  preferredTime?: Date;
+}

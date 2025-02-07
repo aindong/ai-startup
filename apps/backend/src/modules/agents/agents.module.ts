@@ -18,6 +18,11 @@ import { TasksModule } from '../tasks/tasks.module';
     AgentDecisionService,
     AgentsGateway,
   ],
-  exports: [AgentsService, AgentStateService, AgentDecisionService],
+  exports: [
+    AgentsService,
+    AgentStateService,
+    AgentDecisionService,
+    TypeOrmModule.forFeature([Agent]),
+  ],
 })
 export class AgentsModule {}
