@@ -1,26 +1,46 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { AgentRole } from '@ai-startup/shared';
+import { AgentState } from '../types/agent-state.types';
+
+const AGENT_ROLES = ['CEO', 'CTO', 'ENGINEER', 'MARKETER', 'SALES'] as const;
+const AGENT_STATES = [
+  'IDLE',
+  'WORKING',
+  'COLLABORATING',
+  'BREAK',
+  'THINKING',
+] as const;
+
+class LocationDto {
+  @IsString()
+  @IsNotEmpty()
+  room: string;
+
+  @IsNumber()
+  x: number;
+
+  @IsNumber()
+  y: number;
+}
 
 export class CreateAgentDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @IsEnum(AgentRole)
+  @IsEnum(AGENT_ROLES)
   role: AgentRole;
 
-  @IsObject()
-  location: {
-    @IsString()
-    @IsNotEmpty()
-    room: string;
-
-    @IsNumber()
-    x: number;
-
-    @IsNumber()
-    y: number;
-  };
+  @ValidateNested()
+  @Type(() => LocationDto)
+  location: LocationDto;
 }
 
 export class UpdateAgentDto {
@@ -28,24 +48,16 @@ export class UpdateAgentDto {
   @IsNotEmpty()
   name?: string;
 
-  @IsEnum(['ACTIVE', 'BREAK', 'IDLE'])
-  status?: 'ACTIVE' | 'BREAK' | 'IDLE';
+  @IsEnum(AGENT_STATES)
+  state?: AgentState;
 
-  @IsObject()
-  location?: {
-    @IsString()
-    @IsNotEmpty()
-    room: string;
-
-    @IsNumber()
-    x: number;
-
-    @IsNumber()
-    y: number;
-  };
+  @ValidateNested()
+  @Type(() => LocationDto)
+  location?: LocationDto;
 }
 
 export class AssignTaskDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   taskId: string;
-} 
+}

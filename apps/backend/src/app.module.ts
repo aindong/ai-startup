@@ -10,59 +10,44 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { DatabaseModule } from './database/database.module';
+import databaseConfig from './config/database.config';
+import queueConfig from './config/queue.config';
+import { DataSourceOptions } from 'typeorm';
 import { BullModuleOptions } from '@nestjs/bull';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [databaseConfig, queueConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
-        const host = configService.get<string>('DB_HOST');
-        const port = configService.get<string>('DB_PORT');
-        const username = configService.get<string>('DB_USERNAME');
-        const password = configService.get<string>('DB_PASSWORD');
-        const database = configService.get<string>('DB_NAME');
-
-        if (!host || !port || !username || !password || !database) {
+      useFactory: (configService: ConfigService) => {
+        const config = configService.get<DataSourceOptions>('database');
+        if (!config) {
           throw new Error('Database configuration not found');
         }
-
         return {
-          type: 'postgres',
-          host,
-          port: parseInt(port, 10),
-          username,
-          password,
-          database,
+          ...config,
           autoLoadEntities: true,
-          synchronize: true,
         };
       },
       inject: [ConfigService],
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService): BullModuleOptions => {
-        const host = configService.get<string>('REDIS_HOST');
-        const port = configService.get<string>('REDIS_PORT');
-
-        if (!host || !port) {
-          throw new Error('Redis configuration not found');
+      useFactory: (configService: ConfigService) => {
+        const config = configService.get<BullModuleOptions>('queue');
+        if (!config) {
+          throw new Error('Queue configuration not found');
         }
-
-        return {
-          redis: {
-            host,
-            port: parseInt(port, 10),
-          },
-        };
+        return config;
       },
       inject: [ConfigService],
     }),
+    DatabaseModule,
     AgentsModule,
     TasksModule,
     AuthModule,

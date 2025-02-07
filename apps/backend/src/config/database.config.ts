@@ -1,5 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
+import { join } from 'path';
 
 export default registerAs(
   'database',
@@ -10,9 +11,8 @@ export default registerAs(
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'ai_startup',
-    entities: ['dist/**/*.entity{.ts,.js}'],
-    migrations: ['dist/migrations/*{.ts,.js}'],
-    autoLoadEntities: true,
+    entities: [join(__dirname, '..', '**', '*.entity{.ts,.js}')],
+    migrations: [join(__dirname, '..', 'migrations', '*{.ts,.js}')],
     synchronize: process.env.NODE_ENV !== 'production',
   }),
 );

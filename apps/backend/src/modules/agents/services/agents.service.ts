@@ -16,20 +16,30 @@ export class AgentsService {
   ) {}
 
   async create(createAgentDto: CreateAgentDto): Promise<Agent> {
-    const agent = this.agentRepository.create(createAgentDto);
+    const agent = this.agentRepository.create({
+      ...createAgentDto,
+      state: 'IDLE',
+      metrics: {
+        productivity: 0,
+        collaboration: 0,
+        decisionQuality: 0,
+        taskCompletionRate: 0,
+        breakTimeEfficiency: 0,
+      },
+    });
     return this.agentRepository.save(agent);
   }
 
   async findAll(): Promise<Agent[]> {
     return this.agentRepository.find({
-      relations: ['currentTask', 'currentRoom', 'metrics'],
+      relations: ['currentTask', 'currentRoom', 'messages'],
     });
   }
 
   async findOne(id: string): Promise<Agent> {
     const agent = await this.agentRepository.findOne({
       where: { id },
-      relations: ['currentTask', 'currentRoom', 'metrics'],
+      relations: ['currentTask', 'currentRoom', 'messages'],
     });
 
     if (!agent) {

@@ -8,7 +8,6 @@ import { AgentsService } from '../../agents/services/agents.service';
 import {
   CollaborationRequest,
   CollaborationResponse,
-  CollaborationStatus,
 } from '../types/collaboration.types';
 
 @Injectable()
@@ -28,20 +27,16 @@ export class CollaborationService {
   async initiateCollaboration(
     request: CollaborationRequest,
   ): Promise<CollaborationSession> {
-    const [initiator, ...participants] = await Promise.all([
-      this.agentsService.findOne(request.initiatorId),
-      ...request.participantIds.map((id) => this.agentsService.findOne(id)),
-    ]);
-
-    if (!initiator) {
-      throw new NotFoundException('Initiator not found');
-    }
+    const initiator = await this.agentsService.findOne(request.initiatorId);
+    const participants = await Promise.all(
+      request.participantIds.map((id) => this.agentsService.findOne(id)),
+    );
 
     const session = this.collaborationRepository.create({
       type: request.type,
       initiator,
       participants,
-      status: 'PENDING' as CollaborationStatus,
+      status: 'PENDING',
       context: request.context,
       votes: [],
       startTime: new Date(),
@@ -56,35 +51,27 @@ export class CollaborationService {
     response: CollaborationResponse,
   ): Promise<CollaborationSession> {
     const session = await this.findOne(sessionId);
+    const agent = await this.agentsService.findOne(response.agentId);
 
-    if (!session) {
-      throw new NotFoundException('Collaboration session not found');
-    }
-
-    if (session.status !== 'PENDING') {
-      throw new Error('Collaboration is not in pending state');
-    }
-
-    // Add vote
-    session.votes = session.votes || [];
     session.votes.push({
-      agentId: response.agentId,
+      agentId: agent.id,
       vote: response.response,
       reason: response.reasoning || '',
       timestamp: new Date(),
     });
 
     // Check if all participants have voted
-    const allVoted = session.participants.every((participant) =>
-      session.votes.some((vote) => vote.agentId === participant.id),
-    );
+    const uniqueVoters = new Set(session.votes.map((v) => v.agentId));
+    const allParticipantsVoted =
+      uniqueVoters.size === session.participants.length;
 
-    if (allVoted) {
-      // Check if all approved
-      const allApproved = session.votes.every(
-        (vote) => vote.vote === 'APPROVE',
-      );
-      session.status = allApproved ? 'ACTIVE' : 'CANCELLED';
+    if (allParticipantsVoted) {
+      const approvalVotes = session.votes.filter(
+        (v) => v.vote === 'APPROVE',
+      ).length;
+      const approvalRatio = approvalVotes / session.votes.length;
+
+      session.status = approvalRatio >= 0.5 ? 'ACTIVE' : 'CANCELLED';
     }
 
     return this.collaborationRepository.save(session);
@@ -99,10 +86,6 @@ export class CollaborationService {
   ): Promise<VotingSession> {
     const collaboration = await this.findOne(collaborationId);
 
-    if (!collaboration) {
-      throw new NotFoundException('Collaboration session not found');
-    }
-
     const votingSession = this.votingRepository.create({
       collaboration,
       topic,
@@ -110,7 +93,7 @@ export class CollaborationService {
       options,
       votes: [],
       status: 'OPEN',
-      deadline: new Date(Date.now() + durationMinutes * 60 * 1000),
+      deadline: new Date(Date.now() + durationMinutes * 60000),
     });
 
     return this.votingRepository.save(votingSession);
@@ -129,43 +112,38 @@ export class CollaborationService {
     });
 
     if (!votingSession) {
-      throw new NotFoundException('Voting session not found');
+      throw new NotFoundException(`Voting session ${votingId} not found`);
     }
 
     if (votingSession.status === 'CLOSED') {
       throw new Error('Voting session is closed');
     }
 
-    // Validate agent is a participant
+    const agent = await this.agentsService.findOne(agentId);
     const isParticipant = votingSession.collaboration.participants.some(
-      (p) => p.id === agentId,
+      (p) => p.id === agent.id,
     );
+
     if (!isParticipant) {
       throw new Error('Agent is not a participant in this collaboration');
     }
 
-    // Validate option exists
-    const optionExists = votingSession.options.some((o) => o.id === optionId);
-    if (!optionExists) {
-      throw new Error('Invalid option ID');
-    }
-
-    // Add vote
-    votingSession.votes.push({
+    const vote = {
       agentId,
       optionId,
       confidence,
       reasoning,
       timestamp: new Date(),
-    });
+    };
+
+    votingSession.votes.push(vote);
 
     // Check if all participants have voted
-    const allVoted = votingSession.collaboration.participants.every(
-      (participant) =>
-        votingSession.votes.some((vote) => vote.agentId === participant.id),
-    );
+    const uniqueVoters = new Set(votingSession.votes.map((v) => v.agentId));
+    const allParticipantsVoted =
+      uniqueVoters.size === votingSession.collaboration.participants.length;
 
-    if (allVoted) {
+    if (allParticipantsVoted || new Date() >= votingSession.deadline) {
       await this.finalizeVoting(votingSession);
     }
 
@@ -173,40 +151,42 @@ export class CollaborationService {
   }
 
   private async finalizeVoting(votingSession: VotingSession): Promise<void> {
-    // Calculate results
-    const votesByOption = votingSession.options.map((option) => ({
-      optionId: option.id,
-      votes: votingSession.votes.filter((v) => v.optionId === option.id),
-      totalConfidence: votingSession.votes
-        .filter((v) => v.optionId === option.id)
-        .reduce((sum, v) => sum + v.confidence, 0),
-    }));
+    votingSession.status = 'CLOSED';
 
-    // Find option with highest weighted votes
-    const winner = votesByOption.reduce(
-      (best, current) =>
-        current.totalConfidence > best.totalConfidence ? current : best,
-      votesByOption[0],
+    // Calculate results
+    const optionVotes = new Map<string, number>();
+    votingSession.options.forEach((opt) => optionVotes.set(opt.id, 0));
+
+    votingSession.votes.forEach((vote) => {
+      const currentVotes = optionVotes.get(vote.optionId) || 0;
+      optionVotes.set(vote.optionId, currentVotes + vote.confidence);
+    });
+
+    let maxVotes = 0;
+    let selectedOptionId = '';
+    optionVotes.forEach((votes, optionId) => {
+      if (votes > maxVotes) {
+        maxVotes = votes;
+        selectedOptionId = optionId;
+      }
+    });
+
+    const totalPossibleVotes =
+      votingSession.collaboration.participants.length * 1; // max confidence
+    const consensusLevel = maxVotes / totalPossibleVotes;
+
+    // Collect dissenting opinions
+    const dissentingVotes = votingSession.votes.filter(
+      (v) => v.optionId !== selectedOptionId && v.confidence > 0.7,
     );
 
-    // Calculate consensus level (0-1)
-    const totalVotes = votingSession.votes.length;
-    const consensusLevel = winner.votes.length / totalVotes;
-
-    // Get dissenting opinions
-    const dissent = votingSession.votes
-      .filter((v) => v.optionId !== winner.optionId)
-      .map((v) => ({
+    votingSession.result = {
+      selectedOptionId,
+      consensusLevel,
+      dissent: dissentingVotes.map((v) => ({
         agentId: v.agentId,
         reason: v.reasoning,
-      }));
-
-    // Update session with results
-    votingSession.status = 'CLOSED';
-    votingSession.result = {
-      selectedOptionId: winner.optionId,
-      consensusLevel,
-      dissent,
+      })),
     };
 
     await this.votingRepository.save(votingSession);
@@ -244,7 +224,7 @@ export class CollaborationService {
     const session = await this.findOne(sessionId);
 
     if (session.status !== 'ACTIVE') {
-      throw new Error('Collaboration is not active');
+      throw new Error('Can only complete active collaborations');
     }
 
     session.status = 'COMPLETED';
