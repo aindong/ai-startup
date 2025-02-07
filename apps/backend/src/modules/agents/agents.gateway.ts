@@ -7,9 +7,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
-import { AgentsService } from './agents.service';
+import { AgentsService } from './services/agents.service';
 import { Agent } from './entities/agent.entity';
 import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
+import { AgentState } from './types/agent-state.types';
 
 @WebSocketGateway({
   cors: {
@@ -52,10 +53,10 @@ export class AgentsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('agents:status')
   async handleAgentStatus(
-    client: Socket,
-    payload: { agentId: string; status: 'ACTIVE' | 'BREAK' | 'IDLE' },
+    _client: Socket,
+    payload: { agentId: string; status: AgentState },
   ) {
-    const updatedAgent = await this.agentsService.updateStatus(
+    const updatedAgent = await this.agentsService.updateState(
       payload.agentId,
       payload.status,
     );

@@ -58,7 +58,12 @@ export class CollaborationGateway
     payload: {
       type: CollaborationSession['type'];
       participantIds: string[];
-      context: Record<string, any>;
+      context: {
+        taskId?: string;
+        decisionId?: string;
+        topic?: string;
+        description: string;
+      };
     },
   ) {
     const initiatorId = client.data.user?.sub;

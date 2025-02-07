@@ -9,10 +9,11 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { AgentsService } from './agents.service';
+import { AgentsService } from './services/agents.service';
 import { CreateAgentDto, UpdateAgentDto } from './dto/agent.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Agent } from './entities/agent.entity';
+import { AgentState } from './types/agent-state.types';
 
 @Controller('agents')
 @UseGuards(JwtAuthGuard)
@@ -58,8 +59,8 @@ export class AgentsController {
   @Patch(':id/status')
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('status') status: 'ACTIVE' | 'BREAK' | 'IDLE',
+    @Body('status') status: AgentState,
   ): Promise<Agent> {
-    return this.agentsService.updateStatus(id, status);
+    return this.agentsService.updateState(id, status);
   }
 }

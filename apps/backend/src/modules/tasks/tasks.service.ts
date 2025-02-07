@@ -25,30 +25,37 @@ export class TasksService {
   ) {}
 
   async create(createTaskDto: CreateTaskDto, user: User): Promise<AgentTask> {
+    let assignedAgent: Agent | null = null;
+    if (createTaskDto.assignedTo) {
+      assignedAgent = await this.agentRepository.findOne({
+        where: { id: createTaskDto.assignedTo },
+      });
+      if (!assignedAgent) {
+        throw new NotFoundException('Agent not found');
+      }
+    }
+
     const task = this.taskRepository.create({
-      ...createTaskDto,
+      title: createTaskDto.title,
+      description: createTaskDto.description,
+      priority: createTaskDto.priority,
       status: 'TODO',
+      assignedTo: assignedAgent,
       createdBy: user,
     });
 
-    if (createTaskDto.assignedTo) {
-      const agent = await this.agentRepository.findOne({
-        where: { id: createTaskDto.assignedTo },
-      });
-      if (!agent) {
-        throw new NotFoundException('Agent not found');
-      }
-      task.assignedTo = agent;
+    const savedTask = await this.taskRepository.save(task);
 
-      // Add task to queue if assigned
+    // Add task to queue if assigned
+    if (assignedAgent) {
       await this.taskQueue.add('execute', {
-        taskId: task.id,
-        agentId: agent.id,
+        taskId: savedTask.id,
+        agentId: assignedAgent.id,
         action: 'START',
       });
     }
 
-    return this.taskRepository.save(task);
+    return savedTask;
   }
 
   async findAll(): Promise<AgentTask[]> {
@@ -72,26 +79,27 @@ export class TasksService {
 
   async update(id: string, updateTaskDto: UpdateTaskDto): Promise<AgentTask> {
     const task = await this.findOne(id);
-    const oldStatus = task.status;
-    const oldAssignedTo = task.assignedTo?.id;
+    let assignedAgent: Agent | null = null;
 
     if (updateTaskDto.assignedTo) {
-      const agent = await this.agentRepository.findOne({
+      assignedAgent = await this.agentRepository.findOne({
         where: { id: updateTaskDto.assignedTo },
       });
-      if (!agent) {
+      if (!assignedAgent) {
         throw new NotFoundException('Agent not found');
       }
-      task.assignedTo = agent;
-      delete updateTaskDto.assignedTo;
     }
 
-    Object.assign(task, updateTaskDto);
+    Object.assign(task, {
+      ...updateTaskDto,
+      assignedTo: assignedAgent,
+    });
+
     const updatedTask = await this.taskRepository.save(task);
 
     // Handle status changes
-    if (updateTaskDto.status && updateTaskDto.status !== oldStatus) {
-      const agentId = task.assignedTo?.id;
+    if (updateTaskDto.status) {
+      const agentId = updatedTask.assignedTo?.id;
       if (!agentId) {
         throw new BadRequestException('Task must be assigned to update status');
       }
@@ -115,15 +123,6 @@ export class TasksService {
         taskId: task.id,
         agentId,
         action,
-      });
-    }
-
-    // Handle agent reassignment
-    if (task.assignedTo?.id && task.assignedTo.id !== oldAssignedTo) {
-      await this.taskQueue.add('execute', {
-        taskId: task.id,
-        agentId: task.assignedTo.id,
-        action: 'START',
       });
     }
 

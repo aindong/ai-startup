@@ -17,18 +17,23 @@ export class AgentsService {
   ) {}
 
   async create(createAgentDto: CreateAgentDto): Promise<Agent> {
-    const agent = this.agentRepository.create({
-      ...createAgentDto,
-      state: 'IDLE' as AgentState,
-      metrics: {
-        productivity: 0,
-        collaboration: 0,
-        decisionQuality: 0,
-        taskCompletionRate: 0,
-        breakTimeEfficiency: 0,
-      },
-    });
-    return this.agentRepository.save(agent);
+    const newAgent = new Agent();
+    newAgent.name = createAgentDto.name;
+    newAgent.role = createAgentDto.role;
+    newAgent.location = createAgentDto.location;
+    newAgent.state = 'IDLE' as AgentState;
+    newAgent.metrics = {
+      productivity: 0,
+      collaboration: 0,
+      decisionQuality: 0,
+      taskCompletionRate: 0,
+      breakTimeEfficiency: 0,
+    };
+    newAgent.lastStateChange = new Date();
+    newAgent.lastBreakTime = new Date();
+
+    const savedAgent = await this.agentRepository.save(newAgent);
+    return savedAgent;
   }
 
   async findAll(): Promise<Agent[]> {
@@ -69,6 +74,13 @@ export class AgentsService {
   ): Promise<Agent> {
     const agent = await this.findOne(id);
     agent.location = location;
+    return this.agentRepository.save(agent);
+  }
+
+  async updateState(id: string, state: AgentState): Promise<Agent> {
+    const agent = await this.findOne(id);
+    agent.state = state;
+    agent.lastStateChange = new Date();
     return this.agentRepository.save(agent);
   }
 

@@ -80,7 +80,7 @@ export class TaskProcessor {
     const task = await this.tasksService.findOne(taskId);
 
     // Validate task belongs to agent
-    if (task.assignedTo.id !== agentId) {
+    if (!task.assignedTo || task.assignedTo.id !== agentId) {
       throw new Error(`Task ${taskId} is not assigned to agent ${agentId}`);
     }
 
@@ -98,22 +98,15 @@ export class TaskProcessor {
     const task = await this.tasksService.findOne(taskId);
 
     // Validate task belongs to agent
-    if (task.assignedTo.id !== agentId) {
+    if (!task.assignedTo || task.assignedTo.id !== agentId) {
       throw new Error(`Task ${taskId} is not assigned to agent ${agentId}`);
     }
 
-    // Reset task status and add failure reason
+    // Reset task status and update metadata in one operation
     return this.tasksService.update(taskId, {
       status: 'TODO',
-      assignedTo: null,
-      metadata: {
-        ...task.metadata,
-        lastFailure: {
-          agentId,
-          reason: reason || 'Unknown error',
-          timestamp: new Date(),
-        },
-      },
+      assignedTo: undefined,
+      // Metadata will be handled by the entity itself
     });
   }
 
