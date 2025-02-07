@@ -169,6 +169,20 @@ describe('CollaborationService', () => {
       ];
       const durationMinutes = 30;
 
+      const mockCollabSession: Partial<CollaborationSession> = {
+        id: collaborationId,
+        type: 'TASK_HELP',
+        initiator: mockAgent as Agent,
+        participants: [mockAgent as Agent],
+        status: 'ACTIVE',
+        context: {
+          taskId: 'task-id',
+          description: 'Help needed with task',
+          topic: 'Authentication Implementation',
+        },
+        votes: [],
+      };
+
       const mockVotingSession: Partial<VotingSession> = {
         id: 'voting-id',
         topic,
@@ -177,8 +191,12 @@ describe('CollaborationService', () => {
         votes: [],
         status: 'OPEN',
         deadline: new Date(),
+        collaboration: mockCollabSession as CollaborationSession,
       };
 
+      mockCollaborationRepository.findOne.mockResolvedValueOnce(
+        mockCollabSession,
+      );
       mockVotingRepository.create.mockReturnValueOnce(mockVotingSession);
       mockVotingRepository.save.mockResolvedValueOnce(mockVotingSession);
 
@@ -204,6 +222,20 @@ describe('CollaborationService', () => {
       const confidence = 0.8;
       const reasoning = 'Test reasoning';
 
+      const mockCollabSession: Partial<CollaborationSession> = {
+        id: 'collab-id',
+        type: 'TASK_HELP',
+        initiator: mockAgent as Agent,
+        participants: [mockAgent as Agent],
+        status: 'ACTIVE',
+        context: {
+          taskId: 'task-id',
+          description: 'Help needed with task',
+          topic: 'Authentication Implementation',
+        },
+        votes: [],
+      };
+
       const mockVotingSession: Partial<VotingSession> = {
         id: votingId,
         status: 'OPEN',
@@ -216,6 +248,7 @@ describe('CollaborationService', () => {
             cons: ['Con 1'],
           },
         ],
+        collaboration: mockCollabSession as CollaborationSession,
       };
 
       mockVotingRepository.findOne.mockResolvedValueOnce(mockVotingSession);

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { CollaborationGateway } from './collaboration.gateway';
 import { CollaborationService } from './services/collaboration.service';
+import { JwtService } from '@nestjs/jwt';
 import {
   CollaborationSession,
   VotingSession,
@@ -17,6 +18,12 @@ describe('CollaborationGateway', () => {
     initiateCollaboration: jest.fn(),
     respondToCollaboration: jest.fn(),
     castVote: jest.fn(),
+  };
+
+  const mockJwtService = {
+    verify: jest
+      .fn()
+      .mockReturnValue({ sub: 'user-id', email: 'test@example.com' }),
   };
 
   const mockClient = {
@@ -41,6 +48,10 @@ describe('CollaborationGateway', () => {
         {
           provide: CollaborationService,
           useValue: mockCollaborationService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
