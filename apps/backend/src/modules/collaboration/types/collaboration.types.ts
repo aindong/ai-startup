@@ -12,13 +12,20 @@ export type CollaborationStatus =
   | 'CANCELLED';
 export type VotingStatus = 'OPEN' | 'CLOSED';
 
+export interface CollaborationContext {
+  taskId?: string;
+  decisionId?: string;
+  topic?: string;
+  description: string;
+}
+
 export interface CollaborationSession {
   id: string;
   type: CollaborationType;
   initiator: Agent;
   participants: Agent[];
   status: CollaborationStatus;
-  context: Record<string, any>;
+  context: CollaborationContext;
   votes?: Record<string, any>;
   outcome?: Record<string, any>;
   startTime?: Date;

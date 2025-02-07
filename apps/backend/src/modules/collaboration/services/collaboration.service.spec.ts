@@ -36,7 +36,7 @@ describe('CollaborationService', () => {
     findOne: jest.fn(),
   };
 
-  const mockAgent = {
+  const mockAgent: Partial<Agent> = {
     id: 'agent-id',
     name: 'Test Agent',
     role: 'ENGINEER',
@@ -52,7 +52,7 @@ describe('CollaborationService', () => {
     lastStateChange: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as Agent;
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -94,16 +94,16 @@ describe('CollaborationService', () => {
           taskId: 'task-id',
           description: 'Help needed with task',
           topic: 'Authentication Implementation',
-        } as CollaborationContext,
+        },
       };
 
       const mockSession: Partial<CollaborationSession> = {
         id: 'session-id',
         type: request.type,
-        initiator: mockAgent,
-        participants: [mockAgent],
+        initiator: mockAgent as Agent,
+        participants: [mockAgent as Agent],
         status: 'PENDING',
-        context: request.context,
+        context: request.context as CollaborationContext,
         votes: [],
       };
 
@@ -133,7 +133,7 @@ describe('CollaborationService', () => {
         id: sessionId,
         status: 'PENDING',
         votes: [],
-        participants: [mockAgent],
+        participants: [mockAgent as Agent],
       };
 
       mockCollaborationRepository.findOne.mockResolvedValueOnce(mockSession);
@@ -176,7 +176,7 @@ describe('CollaborationService', () => {
         options,
         votes: [],
         status: 'OPEN',
-        deadline: expect.any(Date),
+        deadline: new Date(),
       };
 
       mockVotingRepository.create.mockReturnValueOnce(mockVotingSession);
@@ -250,8 +250,8 @@ describe('CollaborationService', () => {
           id: 'session-1',
           type: 'TASK_HELP',
           status: 'ACTIVE',
-          initiator: mockAgent,
-          participants: [mockAgent],
+          initiator: mockAgent as Agent,
+          participants: [mockAgent as Agent],
         },
       ];
 

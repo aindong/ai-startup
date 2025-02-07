@@ -1,15 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Socket, Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { CollaborationGateway } from './collaboration.gateway';
 import { CollaborationService } from './services/collaboration.service';
 import {
   CollaborationSession,
   VotingSession,
+  CollaborationType,
 } from './types/collaboration.types';
-import { Agent } from '../agents/entities/agent.entity';
 
 describe('CollaborationGateway', () => {
   let gateway: CollaborationGateway;
+  let mockServer: Partial<Server>;
 
   const mockCollaborationService = {
     findActiveCollaborations: jest.fn(),
@@ -18,25 +19,22 @@ describe('CollaborationGateway', () => {
     castVote: jest.fn(),
   };
 
-  const mockAgent = {
-    id: 'agent-id',
-    name: 'Test Agent',
-    role: 'ENGINEER',
-    state: 'IDLE',
-    location: { room: 'room-1', x: 0, y: 0 },
-    metrics: {
-      productivity: 0.8,
-      collaboration: 0.8,
-      decisionQuality: 0.8,
-      taskCompletionRate: 0.8,
-      breakTimeEfficiency: 0.8,
+  const mockClient = {
+    emit: jest.fn(),
+    data: {
+      user: {
+        sub: 'user-id',
+        email: 'test@example.com',
+      },
     },
-    lastStateChange: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  } as Agent;
+  } as unknown as Socket;
 
   beforeEach(async () => {
+    mockServer = {
+      emit: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CollaborationGateway,
@@ -48,10 +46,7 @@ describe('CollaborationGateway', () => {
     }).compile();
 
     gateway = module.get<CollaborationGateway>(CollaborationGateway);
-    gateway.server = {
-      emit: jest.fn(),
-      to: jest.fn().mockReturnThis(),
-    } as unknown as Server;
+    gateway.server = mockServer as Server;
   });
 
   it('should be defined', () => {
@@ -59,37 +54,16 @@ describe('CollaborationGateway', () => {
   });
 
   describe('handleConnection', () => {
-    it('should send initial active collaborations', async () => {
-      const mockClient = {
-        emit: jest.fn(),
-        data: {
-          user: {
-            sub: 'user-id',
-            email: 'test@example.com',
-          },
-        },
-      } as unknown as Socket;
-
-      const mockCollaborations: Partial<CollaborationSession>[] = [
-        {
-          id: 'collab-1',
-          type: 'TASK_HELP',
-          initiator: mockAgent,
-          participants: [],
-          status: 'ACTIVE',
-          context: {},
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
+    it('should send initial collaborations to connected client', async () => {
+      const mockCollaborations = [{ id: 'collab-1' }] as CollaborationSession[];
       mockCollaborationService.findActiveCollaborations.mockResolvedValueOnce(
         mockCollaborations,
       );
 
       await gateway.handleConnection(mockClient);
 
-      expect(mockClient.emit).toHaveBeenCalledWith(
+      const emitSpy = jest.spyOn(mockClient, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:initial',
         mockCollaborations,
       );
@@ -97,29 +71,17 @@ describe('CollaborationGateway', () => {
   });
 
   describe('handleInitiateCollaboration', () => {
-    it('should initiate a new collaboration session', async () => {
-      const mockClient = {
-        data: {
-          user: {
-            sub: 'initiator-id',
-            email: 'test@example.com',
-          },
-        },
-      } as Socket;
-
+    it('should initiate collaboration and broadcast to all clients', async () => {
       const mockPayload = {
-        type: 'TASK_HELP' as const,
+        type: 'TASK_HELP' as CollaborationType,
         participantIds: ['participant-1'],
-        context: { taskId: 'task-1' },
+        context: { taskId: 'task-1', description: 'Help needed' },
       };
 
-      const mockSession: Partial<CollaborationSession> = {
+      const mockSession = {
         id: 'session-1',
         type: mockPayload.type,
-        initiator: mockAgent,
-        participants: [mockAgent],
-        status: 'PENDING',
-      };
+      } as CollaborationSession;
 
       mockCollaborationService.initiateCollaboration.mockResolvedValueOnce(
         mockSession,
@@ -127,7 +89,8 @@ describe('CollaborationGateway', () => {
 
       await gateway.handleInitiateCollaboration(mockClient, mockPayload);
 
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:initiated',
         mockSession,
       );
@@ -135,34 +98,17 @@ describe('CollaborationGateway', () => {
   });
 
   describe('handleCollaborationResponse', () => {
-    it('should handle collaboration response', async () => {
-      const mockClient = {
-        data: {
-          user: {
-            sub: 'agent-id',
-            email: 'test@example.com',
-          },
-        },
-      } as Socket;
-
+    it('should handle response and broadcast updates', async () => {
       const mockPayload = {
         sessionId: 'session-1',
         response: true,
         reasoning: 'Approved',
       };
 
-      const mockSession: Partial<CollaborationSession> = {
-        id: 'session-1',
+      const mockSession = {
+        id: mockPayload.sessionId,
         status: 'ACTIVE',
-        votes: [
-          {
-            agentId: 'agent-id',
-            vote: 'APPROVE',
-            reason: 'Approved',
-            timestamp: new Date(),
-          },
-        ],
-      };
+      } as CollaborationSession;
 
       mockCollaborationService.respondToCollaboration.mockResolvedValueOnce(
         mockSession,
@@ -170,11 +116,12 @@ describe('CollaborationGateway', () => {
 
       await gateway.handleCollaborationResponse(mockClient, mockPayload);
 
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:response_received',
         mockSession,
       );
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:status_changed',
         mockSession,
       );
@@ -182,16 +129,7 @@ describe('CollaborationGateway', () => {
   });
 
   describe('handleVote', () => {
-    it('should handle casting a vote', async () => {
-      const mockClient = {
-        data: {
-          user: {
-            sub: 'agent-id',
-            email: 'test@example.com',
-          },
-        },
-      } as Socket;
-
+    it('should handle vote and broadcast updates', async () => {
       const mockPayload = {
         votingId: 'voting-1',
         optionId: 'option-1',
@@ -199,19 +137,19 @@ describe('CollaborationGateway', () => {
         reasoning: 'Good choice',
       };
 
-      const mockVotingSession: Partial<VotingSession> = {
-        id: 'voting-1',
+      const mockVotingSession = {
+        id: mockPayload.votingId,
         status: 'OPEN',
         votes: [
           {
-            agentId: 'agent-id',
+            agentId: 'user-id',
             optionId: 'option-1',
             confidence: 0.8,
             reasoning: 'Good choice',
             timestamp: new Date(),
           },
         ],
-      };
+      } as VotingSession;
 
       mockCollaborationService.castVote.mockResolvedValueOnce(
         mockVotingSession,
@@ -219,7 +157,8 @@ describe('CollaborationGateway', () => {
 
       await gateway.handleVote(mockClient, mockPayload);
 
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:vote_cast',
         mockVotingSession,
       );
@@ -230,7 +169,9 @@ describe('CollaborationGateway', () => {
     it('should broadcast collaboration updates', () => {
       const mockSession = { id: 'session-1' } as CollaborationSession;
       gateway.broadcastCollaborationUpdate(mockSession);
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:updated',
         mockSession,
       );
@@ -239,7 +180,9 @@ describe('CollaborationGateway', () => {
     it('should broadcast voting session updates', () => {
       const mockVotingSession = { id: 'voting-1' } as VotingSession;
       gateway.broadcastVotingSessionUpdate(mockVotingSession);
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:voting_updated',
         mockVotingSession,
       );
@@ -248,7 +191,9 @@ describe('CollaborationGateway', () => {
     it('should broadcast collaboration completion', () => {
       const mockSession = { id: 'session-1' } as CollaborationSession;
       gateway.broadcastCollaborationCompletion(mockSession);
-      expect(gateway.server.emit).toHaveBeenCalledWith(
+
+      const emitSpy = jest.spyOn(mockServer, 'emit');
+      expect(emitSpy).toHaveBeenCalledWith(
         'collaboration:completed',
         mockSession,
       );
