@@ -48,7 +48,7 @@ export class CollaborationGateway
     }
   }
 
-  handleDisconnect(_client: AuthenticatedSocket) {
+  handleDisconnect() {
     // Handle client disconnection
   }
 

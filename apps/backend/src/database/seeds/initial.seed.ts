@@ -6,6 +6,10 @@ import { CollaborationSession } from '../../modules/collaboration/entities/colla
 import { VotingSession } from '../../modules/collaboration/entities/voting-session.entity';
 import { Seeder } from '../seeder.interface';
 
+interface Identifier {
+  id: string;
+}
+
 export class InitialSeeder implements Seeder {
   async run(dataSource: DataSource): Promise<void> {
     // Create rooms
@@ -33,6 +37,8 @@ export class InitialSeeder implements Seeder {
       ])
       .execute();
 
+    const roomIds = rooms.identifiers as Identifier[];
+
     // Create agents
     const agents = await dataSource
       .createQueryBuilder()
@@ -44,7 +50,7 @@ export class InitialSeeder implements Seeder {
           role: 'CTO',
           state: 'IDLE',
           location: {
-            room: rooms.identifiers[0].id,
+            room: roomIds[0].id,
             x: 100,
             y: 100,
           },
@@ -61,7 +67,7 @@ export class InitialSeeder implements Seeder {
           role: 'ENGINEER',
           state: 'WORKING',
           location: {
-            room: rooms.identifiers[0].id,
+            room: roomIds[0].id,
             x: 200,
             y: 100,
           },
@@ -78,7 +84,7 @@ export class InitialSeeder implements Seeder {
           role: 'MARKETER',
           state: 'IDLE',
           location: {
-            room: rooms.identifiers[1].id,
+            room: roomIds[1].id,
             x: 100,
             y: 100,
           },
@@ -95,7 +101,7 @@ export class InitialSeeder implements Seeder {
           role: 'SALES',
           state: 'COLLABORATING',
           location: {
-            room: rooms.identifiers[2].id,
+            room: roomIds[2].id,
             x: 100,
             y: 100,
           },
@@ -110,6 +116,8 @@ export class InitialSeeder implements Seeder {
       ])
       .execute();
 
+    const agentIds = agents.identifiers as Identifier[];
+
     // Create tasks
     const tasks = await dataSource
       .createQueryBuilder()
@@ -120,43 +128,48 @@ export class InitialSeeder implements Seeder {
           title: 'Implement Authentication System',
           description: 'Set up JWT authentication for the API endpoints',
           status: 'IN_PROGRESS',
-          assignedTo: { id: agents.identifiers[1].id },
-          createdBy: { id: agents.identifiers[0].id },
+          assignedTo: { id: agentIds[1].id },
+          createdBy: { id: agentIds[0].id },
           priority: 'HIGH',
-          metadata: {
-            estimatedHours: 8,
-            technicalDetails: {
-              framework: 'NestJS',
-              security: 'JWT',
-            },
-          },
+          metadata: () =>
+            `'${JSON.stringify({
+              estimatedHours: 8,
+              technicalDetails: {
+                framework: 'NestJS',
+                security: 'JWT',
+              },
+            })}'`,
         },
         {
           title: 'Create Marketing Campaign',
           description: 'Design and launch Q1 marketing campaign',
           status: 'TODO',
-          assignedTo: { id: agents.identifiers[2].id },
-          createdBy: { id: agents.identifiers[0].id },
+          assignedTo: { id: agentIds[2].id },
+          createdBy: { id: agentIds[0].id },
           priority: 'MEDIUM',
-          metadata: {
-            budget: 5000,
-            channels: ['social', 'email', 'content'],
-          },
+          metadata: () =>
+            `'${JSON.stringify({
+              budget: 5000,
+              channels: ['social', 'email', 'content'],
+            })}'`,
         },
         {
           title: 'Client Presentation',
           description: 'Prepare and deliver product demo to potential client',
           status: 'TODO',
-          assignedTo: { id: agents.identifiers[3].id },
-          createdBy: { id: agents.identifiers[0].id },
+          assignedTo: { id: agentIds[3].id },
+          createdBy: { id: agentIds[0].id },
           priority: 'HIGH',
-          metadata: {
-            clientName: 'TechCorp Inc',
-            meetingDate: '2024-02-15T10:00:00Z',
-          },
+          metadata: () =>
+            `'${JSON.stringify({
+              clientName: 'TechCorp Inc',
+              meetingDate: '2024-02-15T10:00:00Z',
+            })}'`,
         },
       ])
       .execute();
+
+    const taskIds = tasks.identifiers as Identifier[];
 
     // Create collaboration session
     await dataSource
@@ -166,21 +179,23 @@ export class InitialSeeder implements Seeder {
       .values([
         {
           type: 'TASK_HELP',
-          initiator: { id: agents.identifiers[1].id },
-          participants: [{ id: agents.identifiers[0].id }],
+          initiator: { id: agentIds[1].id },
+          participants: [{ id: agentIds[0].id }],
           status: 'ACTIVE',
-          context: {
-            taskId: tasks.identifiers[0].id,
-            description: 'Need help with authentication implementation',
-          },
-          votes: [
-            {
-              agentId: agents.identifiers[0].id,
-              vote: 'APPROVE',
-              reason: 'Available to help with technical guidance',
-              timestamp: new Date(),
-            },
-          ],
+          context: () =>
+            `'${JSON.stringify({
+              taskId: taskIds[0].id,
+              description: 'Need help with authentication implementation',
+            })}'`,
+          votes: () =>
+            `'${JSON.stringify([
+              {
+                agentId: agentIds[0].id,
+                vote: 'APPROVE',
+                reason: 'Available to help with technical guidance',
+                timestamp: new Date(),
+              },
+            ])}'`,
           startTime: new Date(),
         },
       ])
@@ -195,21 +210,22 @@ export class InitialSeeder implements Seeder {
         {
           topic: 'Authentication Method Decision',
           description: 'Choose the best authentication method for our system',
-          options: [
-            {
-              id: '1',
-              description: 'JWT with refresh tokens',
-              pros: ['Stateless', 'Scalable'],
-              cons: ['Token size', "Can't revoke immediately"],
-            },
-            {
-              id: '2',
-              description: 'Session-based with Redis',
-              pros: ['Revokable', 'Smaller payload'],
-              cons: ['Additional infrastructure', 'State management'],
-            },
-          ],
-          votes: [],
+          options: () =>
+            `'${JSON.stringify([
+              {
+                id: '1',
+                description: 'JWT with refresh tokens',
+                pros: ['Stateless', 'Scalable'],
+                cons: ['Token size', "Can't revoke immediately"],
+              },
+              {
+                id: '2',
+                description: 'Session-based with Redis',
+                pros: ['Revokable', 'Smaller payload'],
+                cons: ['Additional infrastructure', 'State management'],
+              },
+            ])}'`,
+          votes: () => `'${JSON.stringify([])}'`,
           status: 'OPEN',
           deadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
         },
