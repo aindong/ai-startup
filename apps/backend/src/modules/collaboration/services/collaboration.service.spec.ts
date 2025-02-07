@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { CollaborationService } from './collaboration.service';
 import { CollaborationSession } from '../entities/collaboration-session.entity';
 import { VotingSession } from '../entities/voting-session.entity';
