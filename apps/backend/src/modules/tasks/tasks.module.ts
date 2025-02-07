@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -9,6 +9,7 @@ import { TasksController } from './tasks.controller';
 import { TasksGateway } from './tasks.gateway';
 import { TaskProcessor } from './processors/task.processor';
 import { AuthModule } from '../auth/auth.module';
+import { AgentsModule } from '../agents/agents.module';
 import queueConfig from '../../config/queue.config';
 import { BullModuleOptions } from '@nestjs/bull';
 
@@ -30,6 +31,7 @@ import { BullModuleOptions } from '@nestjs/bull';
       name: 'tasks',
     }),
     AuthModule,
+    forwardRef(() => AgentsModule),
   ],
   controllers: [TasksController],
   providers: [TasksService, TasksGateway, TaskProcessor],
