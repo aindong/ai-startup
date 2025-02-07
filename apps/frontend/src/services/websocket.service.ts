@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Agent } from '../engine/Agent';
+import { AgentData } from '../engine/Game';
 
 export class WebSocketService {
   private agentsSocket: Socket;
@@ -14,24 +14,24 @@ export class WebSocketService {
   }
 
   // Agent events
-  onAgentMoved(callback: (agent: Agent) => void) {
+  onAgentMoved(callback: (agent: AgentData) => void) {
     this.agentsSocket.on('agents:moved', callback);
   }
 
-  onAgentStatusChanged(callback: (agent: Agent) => void) {
+  onAgentStatusChanged(callback: (agent: AgentData) => void) {
     this.agentsSocket.on('agents:status_changed', callback);
   }
 
-  onInitialAgents(callback: (agents: Agent[]) => void) {
+  onInitialAgents(callback: (agents: AgentData[]) => void) {
     this.agentsSocket.on('agents:initial', callback);
   }
 
   // Room events
-  onAgentJoinedRoom(callback: (data: { roomId: string; agent: Agent }) => void) {
+  onAgentJoinedRoom(callback: (data: { roomId: string; agent: AgentData }) => void) {
     this.roomsSocket.on('rooms:agent_joined', callback);
   }
 
-  onAgentLeftRoom(callback: (data: { roomId: string; agent: Agent }) => void) {
+  onAgentLeftRoom(callback: (data: { agent: AgentData }) => void) {
     this.roomsSocket.on('rooms:agent_left', callback);
   }
 

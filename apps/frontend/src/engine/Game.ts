@@ -18,6 +18,18 @@ export interface Room {
   color: string;
 }
 
+export interface AgentData {
+  id: string;
+  name: string;
+  role: string;
+  state: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  room: string;
+}
+
 export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -88,12 +100,21 @@ export class Game {
 
   private initializeWebSocketListeners() {
     // Listen for initial agents data
-    websocketService.onInitialAgents((agents) => {
-      this.agents = agents.map(agentData => new Agent(agentData));
+    websocketService.onInitialAgents((agents: AgentData[]) => {
+      this.agents = agents.map(agentData => 
+        new Agent({
+          id: agentData.id,
+          name: agentData.name,
+          role: agentData.role as AgentOptions['role'],
+          state: agentData.state as AgentOptions['state'],
+          position: agentData.position,
+          room: agentData.room
+        }, this.rooms, this.gridSize)
+      );
     });
 
     // Listen for agent movements
-    websocketService.onAgentMoved((agentData) => {
+    websocketService.onAgentMoved((agentData: AgentData) => {
       const agent = this.getAgent(agentData.id);
       if (agent) {
         const newPosition = new Vector2(agentData.position.x, agentData.position.y);
@@ -102,22 +123,22 @@ export class Game {
     });
 
     // Listen for agent status changes
-    websocketService.onAgentStatusChanged((agentData) => {
+    websocketService.onAgentStatusChanged((agentData: AgentData) => {
       const agent = this.getAgent(agentData.id);
       if (agent) {
-        agent.state = agentData.state;
+        agent.state = agentData.state as AgentOptions['state'];
       }
     });
 
     // Listen for room changes
-    websocketService.onAgentJoinedRoom(({ roomId, agent: agentData }) => {
+    websocketService.onAgentJoinedRoom(({ roomId, agent: agentData }: { roomId: string; agent: AgentData }) => {
       const agent = this.getAgent(agentData.id);
       if (agent) {
         agent.room = roomId;
       }
     });
 
-    websocketService.onAgentLeftRoom(({ roomId, agent: agentData }) => {
+    websocketService.onAgentLeftRoom(({ agent: agentData }: { agent: AgentData }) => {
       const agent = this.getAgent(agentData.id);
       if (agent) {
         agent.room = '';
@@ -181,32 +202,21 @@ export class Game {
 
   private drawRooms() {
     this.rooms.forEach(room => {
-      this.drawRoom(
-        room.gridX,
-        room.gridY,
-        room.gridWidth,
-        room.gridHeight,
-        room.color,
-        room.name
-      );
+      this.drawRoom(room);
     });
+
+    // Draw doorways
+    this.drawDoorways();
   }
 
-  private drawRoom(
-    gridX: number,
-    gridY: number,
-    gridWidth: number,
-    gridHeight: number,
-    color: string,
-    label: string
-  ) {
-    const x = gridX * this.gridSize;
-    const y = gridY * this.gridSize;
-    const width = gridWidth * this.gridSize;
-    const height = gridHeight * this.gridSize;
+  private drawRoom(room: Room) {
+    const x = room.gridX * this.gridSize;
+    const y = room.gridY * this.gridSize;
+    const width = room.gridWidth * this.gridSize;
+    const height = room.gridHeight * this.gridSize;
 
     // Draw room background
-    this.ctx.fillStyle = color;
+    this.ctx.fillStyle = room.color;
     this.ctx.fillRect(x, y, width, height);
 
     // Draw room border
@@ -218,7 +228,65 @@ export class Game {
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = '16px Arial';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText(label, x + width / 2, y + 24);
+    this.ctx.fillText(room.name, x + width / 2, y + 24);
+  }
+
+  private drawDoorways() {
+    // Draw doorways between adjacent rooms
+    for (let i = 0; i < this.rooms.length; i++) {
+      for (let j = i + 1; j < this.rooms.length; j++) {
+        const room1 = this.rooms[i];
+        const room2 = this.rooms[j];
+
+        // Check horizontal adjacency
+        if (Math.abs((room1.gridX + room1.gridWidth) - room2.gridX) === 0 ||
+            Math.abs(room1.gridX - (room2.gridX + room2.gridWidth)) === 0) {
+          // Check vertical overlap
+          const overlapStart = Math.max(room1.gridY, room2.gridY);
+          const overlapEnd = Math.min(room1.gridY + room1.gridHeight, room2.gridY + room2.gridHeight);
+          
+          if (overlapEnd - overlapStart >= 2) {
+            // Draw door in middle of overlap
+            const doorY = Math.floor((overlapStart + overlapEnd - 2) / 2);
+            const doorX = Math.min(room1.gridX + room1.gridWidth, room2.gridX);
+
+            this.drawDoorway(doorX, doorY, false);
+          }
+        }
+
+        // Check vertical adjacency
+        if (Math.abs((room1.gridY + room1.gridHeight) - room2.gridY) === 0 ||
+            Math.abs(room1.gridY - (room2.gridY + room2.gridHeight)) === 0) {
+          // Check horizontal overlap
+          const overlapStart = Math.max(room1.gridX, room2.gridX);
+          const overlapEnd = Math.min(room1.gridX + room1.gridWidth, room2.gridX + room2.gridWidth);
+          
+          if (overlapEnd - overlapStart >= 2) {
+            // Draw door in middle of overlap
+            const doorX = Math.floor((overlapStart + overlapEnd - 2) / 2);
+            const doorY = Math.min(room1.gridY + room1.gridHeight, room2.gridY);
+
+            this.drawDoorway(doorX, doorY, true);
+          }
+        }
+      }
+    }
+  }
+
+  private drawDoorway(gridX: number, gridY: number, isHorizontal: boolean) {
+    const x = gridX * this.gridSize;
+    const y = gridY * this.gridSize;
+    const width = isHorizontal ? this.gridSize * 2 : this.gridSize;
+    const height = isHorizontal ? this.gridSize : this.gridSize * 2;
+
+    // Draw doorway
+    this.ctx.fillStyle = '#1a1a1a';
+    this.ctx.fillRect(x, y, width, height);
+
+    // Draw door frame
+    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeRect(x, y, width, height);
   }
 
   private initializeTestAgents() {
@@ -256,35 +324,26 @@ export class Game {
           y: (2 + 3) * this.gridSize
         },
         room: 'marketing'
-      },
-      {
-        id: '4',
-        name: 'Sales Rep',
-        role: 'SALES',
-        state: 'BREAK',
-        position: {
-          x: (13 + 4) * this.gridSize,
-          y: (9 + 3) * this.gridSize
-        },
-        room: 'sales'
       }
     ];
 
-    this.agents = testAgents.map(options => new Agent(options));
+    this.agents = testAgents.map(agentData => 
+      new Agent(agentData, this.rooms, this.gridSize)
+    );
+  }
+
+  private getAgent(id: string): Agent | undefined {
+    return this.agents.find(agent => agent.id === id);
   }
 
   public addAgent(options: AgentOptions) {
-    const agent = new Agent(options);
+    const agent = new Agent(options, this.rooms, this.gridSize);
     this.agents.push(agent);
     return agent;
   }
 
   public removeAgent(id: string) {
     this.agents = this.agents.filter(agent => agent.id !== id);
-  }
-
-  public getAgent(id: string) {
-    return this.agents.find(agent => agent.id === id);
   }
 
   public getAgentsInRoom(roomId: string) {
@@ -300,8 +359,7 @@ export class Game {
     if (!agent) return;
 
     const target = new Vector2(targetX, targetY);
-    const path = this.findPath(agent.getPosition(), target);
-    agent.moveTo(target, path);
+    agent.moveTo(target);
   }
 
   private findPath(start: Vector2, end: Vector2): Vector2[] {

@@ -1,4 +1,7 @@
 import { Vector2 } from '../utils/Vector2';
+import { Pathfinding } from '../utils/Pathfinding';
+import { Navigation } from '../utils/Navigation';
+import { Room } from './Game';
 
 export type AgentRole = 'CEO' | 'CTO' | 'ENGINEER' | 'MARKETER' | 'SALES';
 export type AgentState = 'IDLE' | 'WORKING' | 'COLLABORATING' | 'BREAK' | 'THINKING';
@@ -21,8 +24,8 @@ export class Agent {
   public role: AgentRole;
   public state: AgentState;
   public room: string;
+  public position: Vector2;
   
-  private position: Vector2;
   private targetPosition: Vector2;
   private velocity: Vector2;
   private path: Vector2[] = [];
@@ -30,8 +33,13 @@ export class Agent {
   private moveSpeed = 120; // pixels per second
   private size = 24; // Size of the agent circle
   private isMoving = false;
+  private rooms: Room[] = []; // Reference to game rooms
+  private gridSize = 32; // Reference to game grid size
+  private animationTime = 0;
+  private bounceHeight = 4; // Maximum bounce height in pixels
+  private bounceSpeed = 5; // Bounce cycles per second
 
-  constructor(options: AgentOptions) {
+  constructor(options: AgentOptions, rooms: Room[], gridSize: number) {
     this.id = options.id;
     this.name = options.name;
     this.role = options.role;
@@ -40,10 +48,15 @@ export class Agent {
     this.position = new Vector2(options.position.x, options.position.y);
     this.targetPosition = this.position.clone();
     this.velocity = Vector2.zero();
+    this.rooms = rooms;
+    this.gridSize = gridSize;
   }
 
-  public getPosition(): Vector2 {
-    return this.position.clone();
+  public getPositionData(): { x: number; y: number } {
+    return {
+      x: this.position.x,
+      y: this.position.y
+    };
   }
 
   public setPosition(position: Vector2) {
@@ -53,20 +66,38 @@ export class Agent {
     this.isMoving = false;
   }
 
-  public moveTo(target: Vector2, path?: Vector2[]) {
-    if (path) {
+  public moveTo(target: Vector2) {
+    // First try to find a path between rooms if needed
+    const path = Navigation.findRoomPath(this.position, target, this.rooms, this.gridSize);
+    
+    if (path.length > 0) {
+      // Use room-to-room path
       this.path = path;
       this.currentPathIndex = 0;
       this.targetPosition = this.path[0];
     } else {
-      this.targetPosition = target.clone();
-      this.path = [];
+      // Use A* pathfinding for local navigation
+      const isWalkable = (pos: Vector2) => Navigation.isWalkable(pos, this.rooms, this.gridSize);
+      this.path = Pathfinding.findPath(this.position, target, isWalkable, this.gridSize);
+      
+      if (this.path.length > 0) {
+        this.currentPathIndex = 0;
+        this.targetPosition = this.path[0];
+      } else {
+        // If no path found, try direct movement
+        this.targetPosition = target.clone();
+        this.path = [];
+      }
     }
+    
     this.isMoving = true;
   }
 
   public update(deltaTime: number) {
     if (!this.isMoving) return;
+
+    // Update animation time
+    this.animationTime += deltaTime;
 
     const distanceToTarget = this.position.distance(this.targetPosition);
     const moveDistance = this.moveSpeed * deltaTime;
@@ -101,9 +132,17 @@ export class Agent {
     // Save context state
     ctx.save();
 
+    // Calculate bounce offset
+    const bounceOffset = this.isMoving ? 
+      Math.sin(this.animationTime * this.bounceSpeed * Math.PI * 2) * this.bounceHeight : 
+      0;
+
+    // Apply bounce to position
+    const renderPos = new Vector2(this.position.x, this.position.y - bounceOffset);
+
     // Draw agent circle
     ctx.beginPath();
-    ctx.arc(this.position.x, this.position.y, this.size / 2, 0, Math.PI * 2);
+    ctx.arc(renderPos.x, renderPos.y, this.size / 2, 0, Math.PI * 2);
     ctx.fillStyle = this.getRoleColor();
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
@@ -112,13 +151,13 @@ export class Agent {
     ctx.closePath();
 
     // Draw state indicator
-    this.drawStateIndicator(ctx);
+    this.drawStateIndicator(ctx, renderPos);
 
     // Draw name label
     ctx.fillStyle = '#ffffff';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(this.name, this.position.x, this.position.y + this.size);
+    ctx.fillText(this.name, renderPos.x, renderPos.y + this.size);
 
     // Draw path (for debugging)
     if (this.path.length > 0) {
@@ -153,10 +192,10 @@ export class Agent {
     }
   }
 
-  private drawStateIndicator(ctx: CanvasRenderingContext2D) {
+  private drawStateIndicator(ctx: CanvasRenderingContext2D, position: Vector2) {
     const indicatorSize = 8;
-    const x = this.position.x + this.size / 2;
-    const y = this.position.y - this.size / 2;
+    const x = position.x + this.size / 2;
+    const y = position.y - this.size / 2;
 
     ctx.beginPath();
     ctx.arc(x, y, indicatorSize / 2, 0, Math.PI * 2);
