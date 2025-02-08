@@ -124,17 +124,22 @@ function App() {
   }, [])
 
   return (
-    <>
+    <div className="relative w-screen h-screen overflow-hidden">
       <canvas
         ref={canvasRef}
+        className="absolute inset-0 z-0"
         style={{
-          display: 'block',
-          width: '100vw',
-          height: '100vh',
+          width: '100%',
+          height: '100%',
         }}
       />
-      <GameUI selectedAgent={selectedAgent} />
-    </>
+
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="relative w-full h-full">
+          <GameUI selectedAgent={selectedAgent} />
+        </div>
+      </div>
+    </div>
   )
 }
 

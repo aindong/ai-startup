@@ -48,27 +48,39 @@ export function GameUI({ selectedAgent }: GameUIProps) {
   };
 
   return (
-    <div className="fixed inset-0 pointer-events-none">
-      {/* Agent Info Panel */}
-      {selectedAgent && (
-        <div className="fixed top-5 right-5 w-[300px] bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-4 pointer-events-auto">
-          <h3 className="text-xl font-bold mb-3 text-white">{selectedAgent.name}</h3>
-          <div className="flex flex-col gap-2">
-            <p className="text-gray-300">Role: {selectedAgent.role}</p>
-            <p className="text-gray-300">State: {selectedAgent.state}</p>
+    <div className="w-full h-full">
+      <div className="absolute top-6 right-6 flex flex-col gap-6 min-w-[320px] pointer-events-auto">
+        {/* Agent Info Panel */}
+        {selectedAgent && (
+          <div className="w-full bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6">
+            <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+              {selectedAgent.name}
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Role</span>
+                <span className="text-white font-medium">{selectedAgent.role}</span>
+              </div>
+              <div className="h-px bg-white/10" />
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">State</span>
+                <span className="text-white font-medium">{selectedAgent.state}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Task List Panel */}
-      <TaskList tasks={mockTasks} />
+        {/* Task List Panel */}
+        <TaskList tasks={mockTasks} />
 
-      {/* Control Panel */}
-      <ControlPanel
-        onSpeedChange={handleSpeedChange}
-        onToggleRandomWalk={handleToggleRandomWalk}
-        onToggleDebugInfo={handleToggleDebugInfo}
-      />
+        {/* Control Panel */}
+        <ControlPanel
+          onSpeedChange={handleSpeedChange}
+          onToggleRandomWalk={handleToggleRandomWalk}
+          onToggleDebugInfo={handleToggleDebugInfo}
+        />
+      </div>
     </div>
   );
 } 
