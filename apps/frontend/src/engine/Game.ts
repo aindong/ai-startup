@@ -31,6 +31,10 @@ export interface AgentData {
     x: number;
     y: number;
   } | null;
+  message?: {
+    content: string;
+    type: 'SPEECH' | 'THOUGHT' | 'TASK' | 'DECISION';
+  };
 }
 
 export class Game {
@@ -45,6 +49,7 @@ export class Game {
   private mousePosition: { x: number; y: number } | null = null;
   private lastRandomWalkTime: number = 0;
   private randomWalkInterval: number = 3000; // Random walk every 3 seconds
+  private selectedAgent: Agent | null = null;
 
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
@@ -160,6 +165,15 @@ export class Game {
         });
       }
     });
+
+    // Listen for agent messages
+    websocketService.onAgentMessage((data) => {
+      console.log('💬 Agent message received:', data);
+      const agent = this.getAgent(data.agentId);
+      if (agent) {
+        agent.addMessage(data.message.content, data.message.type);
+      }
+    });
   }
 
   public resize(width: number, height: number) {
@@ -218,6 +232,11 @@ export class Game {
 
     // Draw rooms
     this.drawRooms();
+
+    // Draw selected agent's path
+    if (this.selectedAgent) {
+      this.drawAgentPath(this.selectedAgent);
+    }
 
     // Draw agents
     this.agents.forEach(agent => {
@@ -402,7 +421,7 @@ export class Game {
 
     // Draw text background
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    this.ctx.fillRect(10, 10, 200, 60);
+    this.ctx.fillRect(10, 10, 200, 80);
 
     // Draw text
     this.ctx.fillStyle = '#ffffff';
@@ -410,6 +429,7 @@ export class Game {
     this.ctx.textAlign = 'left';
     this.ctx.fillText(`Screen: (${screenX}, ${screenY})`, 20, 30);
     this.ctx.fillText(`Grid: (${gridX}, ${gridY})`, 20, 50);
+    this.ctx.fillText(`Selected: ${this.selectedAgent?.name || 'None'}`, 20, 70);
 
     // Draw crosshair at mouse position
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -426,5 +446,92 @@ export class Game {
     this.ctx.moveTo(0, screenY);
     this.ctx.lineTo(this.width, screenY);
     this.ctx.stroke();
+  }
+
+  public getClickedAgent(x: number, y: number): Agent | null {
+    // Convert screen coordinates to grid coordinates
+    const gridX = x / this.gridSize;
+    const gridY = y / this.gridSize;
+
+    // Check each agent
+    for (const agent of this.agents) {
+      const dx = gridX - agent.location.x;
+      const dy = gridY - agent.location.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Check if click is within agent's circle (size/2 in grid units)
+      if (distance < (agent.size / 2) / this.gridSize) {
+        return agent;
+      }
+    }
+    
+    return null;
+  }
+
+  public selectAgent(agent: Agent | null) {
+    if (this.selectedAgent) {
+      // Deselect current agent
+      this.selectedAgent.isSelected = false;
+    }
+    this.selectedAgent = agent;
+    if (agent) {
+      agent.isSelected = true;
+    }
+  }
+
+  public getSelectedAgent(): Agent | null {
+    return this.selectedAgent;
+  }
+
+  public handleClick(x: number, y: number, isRightClick: boolean = false) {
+    if (isRightClick) {
+      // Right click deselects current agent
+      if (this.selectedAgent) {
+        this.selectedAgent.isSelected = false;
+        this.selectedAgent = null;
+      }
+      return;
+    }
+
+    const clickedAgent = this.getClickedAgent(x, y);
+    
+    if (clickedAgent) {
+      // If we click an agent, select it
+      this.selectAgent(clickedAgent);
+      clickedAgent.addMessage(clickedAgent.getSelectionMessage(), 'SPEECH');
+    } else if (this.selectedAgent) {
+      // If we have a selected agent and click empty space, move the agent
+      const gridX = Math.floor(x / this.gridSize);
+      const gridY = Math.floor(y / this.gridSize);
+      
+      // Check if clicked position is in a room
+      const targetRoom = this.getRoomAtPosition(new Vector2(x, y));
+      if (targetRoom) {
+        this.selectedAgent.moveTo(new Vector2(
+          gridX * this.gridSize,
+          gridY * this.gridSize
+        ));
+        this.selectedAgent.addMessage("Moving!", 'TASK');
+      }
+    }
+  }
+
+  private drawAgentPath(agent: Agent) {
+    if (!agent.path || agent.path.length === 0) return;
+
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash([5, 5]);
+    this.ctx.beginPath();
+
+    const startPos = new Vector2(agent.location.x * this.gridSize, agent.location.y * this.gridSize);
+    this.ctx.moveTo(startPos.x, startPos.y);
+
+    agent.path.forEach(point => {
+      this.ctx.lineTo(point.x, point.y);
+    });
+
+    this.ctx.stroke();
+    this.ctx.setLineDash([]);
   }
 } 

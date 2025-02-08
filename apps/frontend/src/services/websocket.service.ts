@@ -91,6 +91,13 @@ export class WebSocketService {
     });
   }
 
+  onAgentMessage(callback: (data: { agentId: string; message: { content: string; type: 'SPEECH' | 'THOUGHT' | 'TASK' | 'DECISION' } }) => void) {
+    this.agentsSocket?.on('agents:message', (data) => {
+      console.log('💬 Agent message received:', data);
+      callback(data);
+    });
+  }
+
   // Room events
   onInitialRooms(callback: (rooms: Room[]) => void) {
     this.roomsSocket?.on('rooms:initial', (data) => {

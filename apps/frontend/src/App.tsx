@@ -93,22 +93,20 @@ function App() {
 
       // Handle canvas click events
       const handleClick = (event: MouseEvent) => {
+        event.preventDefault(); // Prevent default context menu
         const rect = canvasRef.current!.getBoundingClientRect()
         const x = event.clientX - rect.left
         const y = event.clientY - rect.top
-
-        // For testing, move the first agent to the clicked position
-        const firstAgent = game.getAgent('1')
-        if (firstAgent) {
-          game.moveAgent('1', x, y)
-        }
+        game.handleClick(x, y, event.button === 2) // button 2 is right click
       }
       canvasRef.current.addEventListener('click', handleClick)
+      canvasRef.current.addEventListener('contextmenu', handleClick)
 
       // Cleanup
       return () => {
         window.removeEventListener('resize', handleResize)
         canvasRef.current?.removeEventListener('click', handleClick)
+        canvasRef.current?.removeEventListener('contextmenu', handleClick)
         cancelAnimationFrame(animationFrameId)
         if (gameRef.current) {
           gameRef.current.cleanup()
