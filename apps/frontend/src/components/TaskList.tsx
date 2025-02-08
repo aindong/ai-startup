@@ -29,7 +29,7 @@ export function TaskList({ tasks: propTasks }: TaskListProps) {
 
   if (isLoading) {
     return (
-      <div className="w-[320px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
+      <div className="w-[400px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
         <div className="flex items-center justify-center h-[200px]">
           <div className="text-slate-400">Loading tasks...</div>
         </div>
@@ -39,7 +39,7 @@ export function TaskList({ tasks: propTasks }: TaskListProps) {
 
   if (error) {
     return (
-      <div className="w-[320px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
+      <div className="w-[400px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
         <div className="flex items-center justify-center h-[200px]">
           <div className="text-red-400">Error loading tasks</div>
         </div>
@@ -51,7 +51,7 @@ export function TaskList({ tasks: propTasks }: TaskListProps) {
 
   return (
     <>
-      <div className="w-[320px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
+      <div className="w-[400px] bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6 pointer-events-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-3">
             <div className="w-3 h-3 rounded-full bg-blue-400" />

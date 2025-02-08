@@ -1,132 +1,117 @@
 import { useEffect, useRef, useState } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Game } from './engine/Game'
-import { websocketService } from './services/websocket.service'
 import { GameUI } from './components/GameUI'
 import { Agent } from './engine/Agent'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { chatService } from './services/chat.service'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60, // 1 minute
-      retry: 2,
-    },
-  },
-})
+const queryClient = new QueryClient()
 
 async function login() {
-  try {
-    const response = await fetch('http://localhost:3001/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        email: 'test@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'User'
-      }),
-    });
+  const response = await fetch('http://localhost:3001/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: 'test@example.com',
+      password: 'password123',
+    }),
+  })
 
-    if (!response.ok) {
-      // If registration fails (e.g., user exists), try logging in
-      const loginResponse = await fetch('http://localhost:3001/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123',
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const data = await loginResponse.json();
-      localStorage.setItem('token', data.accessToken);
-      return data.accessToken;
-    }
-
-    const data = await response.json();
-    localStorage.setItem('token', data.accessToken);
-    return data.accessToken;
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return null;
+  if (!response.ok) {
+    throw new Error('Failed to login')
   }
+
+  const data = await response.json()
+  localStorage.setItem('token', data.accessToken)
+  return data.accessToken
 }
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const gameRef = useRef<Game | null>(null)
+  const gameRef = useRef<Game>()
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [rooms] = useState([
+    {
+      id: 'development',
+      name: 'Development',
+      type: 'DEVELOPMENT' as const,
+    },
+    {
+      id: 'marketing',
+      name: 'Marketing',
+      type: 'MARKETING' as const,
+    },
+    {
+      id: 'sales',
+      name: 'Sales',
+      type: 'SALES' as const,
+    },
+    {
+      id: 'meeting',
+      name: 'Meeting Room',
+      type: 'MEETING' as const,
+    },
+  ])
 
   useEffect(() => {
     async function initGame() {
-      // Get authentication token
-      const token = await login();
-      if (!token) {
-        console.error('Failed to authenticate');
-        return;
-      }
-
-      // Initialize WebSocket service with token
-      websocketService.initialize(token);
-
       if (!canvasRef.current) return
 
+      // Login and initialize chat service
+      const token = await login()
+      chatService.initialize(token)
+
       // Initialize game
+      const canvas = canvasRef.current
       const game = new Game({
-        canvas: canvasRef.current,
-        width: window.innerWidth,
-        height: window.innerHeight,
+        canvas,
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
       })
+
+      // Store game instance
       gameRef.current = game
+
+      // Update agents list when agents change
+      game.onAgentsChange = (newAgents: Agent[]) => {
+        setAgents(newAgents)
+      }
 
       // Handle window resize
       const handleResize = () => {
-        game.resize(window.innerWidth, window.innerHeight)
-        game.render(performance.now())
+        if (!canvas) return
+        game.resize(canvas.clientWidth, canvas.clientHeight)
       }
       window.addEventListener('resize', handleResize)
 
       // Animation loop
-      let animationFrameId: number
       const animate = (time: number) => {
+        game.update(time)
         game.render(time)
-        // Update selected agent state
-        setSelectedAgent(game.getSelectedAgent())
-        animationFrameId = requestAnimationFrame(animate)
+        requestAnimationFrame(animate)
       }
-      animationFrameId = requestAnimationFrame(animate)
+      requestAnimationFrame(animate)
 
-      // Handle canvas click events
+      // Handle canvas click
       const handleClick = (event: MouseEvent) => {
-        event.preventDefault(); // Prevent default context menu
-        const rect = canvasRef.current!.getBoundingClientRect()
+        const rect = canvas.getBoundingClientRect()
         const x = event.clientX - rect.left
         const y = event.clientY - rect.top
-        game.handleClick(x, y, event.button === 2) // button 2 is right click
-      }
-      canvasRef.current.addEventListener('click', handleClick)
-      canvasRef.current.addEventListener('contextmenu', handleClick)
+        game.handleClick(x, y, event.button === 2)
 
-      // Cleanup
+        // Update selected agent
+        setSelectedAgent(game.getSelectedAgent())
+      }
+      canvas.addEventListener('click', handleClick)
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault())
+
       return () => {
         window.removeEventListener('resize', handleResize)
-        canvasRef.current?.removeEventListener('click', handleClick)
-        canvasRef.current?.removeEventListener('contextmenu', handleClick)
-        cancelAnimationFrame(animationFrameId)
-        if (gameRef.current) {
-          gameRef.current.cleanup()
-        }
-        websocketService.disconnect()
+        canvas.removeEventListener('click', handleClick)
+        chatService.disconnect()
       }
     }
 
@@ -149,6 +134,8 @@ function App() {
           <div className="relative w-full h-full">
             <GameUI 
               selectedAgent={selectedAgent}
+              agents={agents}
+              rooms={rooms}
               onSpeedChange={(speed) => gameRef.current?.setSimulationSpeed(speed)}
               onRandomWalkToggle={(enabled) => gameRef.current?.toggleRandomWalk(enabled)}
               onDebugToggle={(enabled) => gameRef.current?.toggleDebug(enabled)}

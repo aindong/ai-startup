@@ -58,6 +58,9 @@ export class Game {
   private currentFps: number = 0;
   private readonly FPS_UPDATE_INTERVAL = 1000; // Update FPS every second
 
+  // Add callback for agent changes
+  public onAgentsChange?: (agents: Agent[]) => void;
+
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
     this.width = options.width;
@@ -379,11 +382,15 @@ export class Game {
   public addAgent(options: AgentOptions) {
     const agent = new Agent(options, this.rooms, this.gridSize);
     this.agents.push(agent);
+    // Notify about agent changes
+    this.onAgentsChange?.(this.agents);
     return agent;
   }
 
   public removeAgent(id: string) {
     this.agents = this.agents.filter(agent => agent.id !== id);
+    // Notify about agent changes
+    this.onAgentsChange?.(this.agents);
   }
 
   public getAgentsInRoom(roomId: string) {
