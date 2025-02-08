@@ -6,31 +6,6 @@ interface GameUIProps {
   selectedAgent: Agent | null;
 }
 
-// Mock tasks for now - later we'll fetch these from the backend
-const mockTasks = [
-  {
-    id: '1',
-    title: 'Implement new feature',
-    status: 'IN_PROGRESS' as const,
-    assignedTo: 'agent1',
-    priority: 'HIGH' as const,
-  },
-  {
-    id: '2',
-    title: 'Review code changes',
-    status: 'TODO' as const,
-    assignedTo: 'agent2',
-    priority: 'MEDIUM' as const,
-  },
-  {
-    id: '3',
-    title: 'Debug production issue',
-    status: 'REVIEW' as const,
-    assignedTo: 'agent3',
-    priority: 'HIGH' as const,
-  },
-];
-
 export function GameUI({ selectedAgent }: GameUIProps) {
   const handleSpeedChange = (speed: string) => {
     console.log('Speed changed:', speed);
@@ -72,7 +47,7 @@ export function GameUI({ selectedAgent }: GameUIProps) {
         )}
 
         {/* Task List Panel */}
-        <TaskList tasks={mockTasks} />
+        <TaskList />
 
         {/* Control Panel */}
         <ControlPanel

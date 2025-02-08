@@ -3,6 +3,16 @@ import { Game } from './engine/Game'
 import { websocketService } from './services/websocket.service'
 import { GameUI } from './components/GameUI'
 import { Agent } from './engine/Agent'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      retry: 2,
+    },
+  },
+})
 
 async function login() {
   try {
@@ -124,22 +134,24 @@ function App() {
   }, [])
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 z-0"
-        style={{
-          width: '100%',
-          height: '100%',
-        }}
-      />
+    <QueryClientProvider client={queryClient}>
+      <div className="relative w-screen h-screen overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 z-0"
+          style={{
+            width: '100%',
+            height: '100%',
+          }}
+        />
 
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        <div className="relative w-full h-full">
-          <GameUI selectedAgent={selectedAgent} />
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className="relative w-full h-full">
+            <GameUI selectedAgent={selectedAgent} />
+          </div>
         </div>
       </div>
-    </div>
+    </QueryClientProvider>
   )
 }
 

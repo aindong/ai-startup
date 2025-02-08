@@ -48,8 +48,8 @@ export class TasksController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    return this.tasksService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<AgentTask> {
+    return this.tasksService.failTask(id, 'Task archived');
   }
 
   @Post(':id/assign')
