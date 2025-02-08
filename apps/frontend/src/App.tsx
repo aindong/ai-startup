@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Game } from './engine/Game'
 import { websocketService } from './services/websocket.service'
+import { GameUI } from './components/GameUI'
+import { Agent } from './engine/Agent'
 
 async function login() {
   try {
@@ -53,6 +55,7 @@ async function login() {
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameRef = useRef<Game | null>(null)
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
 
   useEffect(() => {
     async function initGame() {
@@ -87,6 +90,8 @@ function App() {
       let animationFrameId: number
       const animate = (time: number) => {
         game.render(time)
+        // Update selected agent state
+        setSelectedAgent(game.getSelectedAgent())
         animationFrameId = requestAnimationFrame(animate)
       }
       animationFrameId = requestAnimationFrame(animate)
@@ -119,14 +124,17 @@ function App() {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        display: 'block',
-        width: '100vw',
-        height: '100vh',
-      }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100vw',
+          height: '100vh',
+        }}
+      />
+      <GameUI selectedAgent={selectedAgent} />
+    </>
   )
 }
 
