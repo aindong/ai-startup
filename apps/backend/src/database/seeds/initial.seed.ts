@@ -24,28 +24,52 @@ const AGENT_IDS = {
 
 export class InitialSeeder implements Seeder {
   async run(dataSource: DataSource): Promise<void> {
-    // First seed rooms
+    // Create rooms
     const roomRepository = dataSource.getRepository(Room);
-    await roomRepository.save([
+    const rooms = await roomRepository.save([
       {
-        id: ROOM_IDS.DEV,
         name: 'Development',
         type: 'DEVELOPMENT',
+        metadata: {
+          gridX: 2,
+          gridY: 2,
+          gridWidth: 10,
+          gridHeight: 8,
+          color: '#2a4858',
+        },
       },
       {
-        id: ROOM_IDS.MARKETING,
         name: 'Marketing',
         type: 'MARKETING',
+        metadata: {
+          gridX: 13,
+          gridY: 2,
+          gridWidth: 8,
+          gridHeight: 6,
+          color: '#2d4b1e',
+        },
       },
       {
-        id: ROOM_IDS.SALES,
         name: 'Sales',
         type: 'SALES',
+        metadata: {
+          gridX: 13,
+          gridY: 9,
+          gridWidth: 8,
+          gridHeight: 6,
+          color: '#4b1e1e',
+        },
       },
       {
-        id: ROOM_IDS.MEETING,
         name: 'Meeting',
         type: 'MEETING',
+        metadata: {
+          gridX: 2,
+          gridY: 11,
+          gridWidth: 10,
+          gridHeight: 4,
+          color: '#463366',
+        },
       },
     ]);
 

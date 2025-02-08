@@ -12,11 +12,13 @@ export interface Room {
   id: string;
   name: string;
   type: 'DEVELOPMENT' | 'MARKETING' | 'SALES' | 'MEETING';
-  gridX: number;
-  gridY: number;
-  gridWidth: number;
-  gridHeight: number;
-  color: string;
+  metadata: {
+    gridX: number;
+    gridY: number;
+    gridWidth: number;
+    gridHeight: number;
+    color: string;
+  };
 }
 
 export interface AgentData {
@@ -69,29 +71,14 @@ export class Game {
   private initializeWebSocketListeners() {
     // Listen for initial rooms data
     websocketService.onInitialRooms((rooms: Room[]) => {
-      this.rooms = rooms.map(roomData => ({
-        ...roomData,
-        // Set default grid positions based on room type
-        gridX: this.getDefaultGridX(roomData.type),
-        gridY: this.getDefaultGridY(roomData.type),
-        gridWidth: this.getDefaultGridWidth(roomData.type),
-        gridHeight: this.getDefaultGridHeight(roomData.type),
-        color: this.getRoomColor(roomData.type)
-      }));
+      this.rooms = rooms;
     });
 
     // Listen for room updates
     websocketService.onRoomUpdated((roomData: Room) => {
       const index = this.rooms.findIndex(r => r.id === roomData.id);
       if (index !== -1) {
-        this.rooms[index] = {
-          ...roomData,
-          gridX: this.rooms[index].gridX,
-          gridY: this.rooms[index].gridY,
-          gridWidth: this.rooms[index].gridWidth,
-          gridHeight: this.rooms[index].gridHeight,
-          color: this.rooms[index].color
-        };
+        this.rooms[index] = roomData;
       }
     });
 
@@ -140,76 +127,6 @@ export class Game {
         agent.room = '';
       }
     });
-  }
-
-  private getDefaultGridX(type: string): number {
-    switch (type) {
-      case 'DEVELOPMENT':
-        return 2;
-      case 'MARKETING':
-      case 'SALES':
-        return 13;
-      case 'MEETING':
-        return 2;
-      default:
-        return 0;
-    }
-  }
-
-  private getDefaultGridY(type: string): number {
-    switch (type) {
-      case 'DEVELOPMENT':
-      case 'MARKETING':
-        return 2;
-      case 'SALES':
-        return 9;
-      case 'MEETING':
-        return 11;
-      default:
-        return 0;
-    }
-  }
-
-  private getDefaultGridWidth(type: string): number {
-    switch (type) {
-      case 'DEVELOPMENT':
-      case 'MEETING':
-        return 10;
-      case 'MARKETING':
-      case 'SALES':
-        return 8;
-      default:
-        return 6;
-    }
-  }
-
-  private getDefaultGridHeight(type: string): number {
-    switch (type) {
-      case 'DEVELOPMENT':
-        return 8;
-      case 'MARKETING':
-      case 'SALES':
-        return 6;
-      case 'MEETING':
-        return 4;
-      default:
-        return 4;
-    }
-  }
-
-  private getRoomColor(type: string): string {
-    switch (type) {
-      case 'DEVELOPMENT':
-        return '#2a4858';
-      case 'MARKETING':
-        return '#2d4b1e';
-      case 'SALES':
-        return '#4b1e1e';
-      case 'MEETING':
-        return '#463366';
-      default:
-        return '#333333';
-    }
   }
 
   public resize(width: number, height: number) {
@@ -267,9 +184,7 @@ export class Game {
   }
 
   private drawRooms() {
-    console.log('Drawing rooms:', this.rooms);
     this.rooms.forEach(room => {
-      console.log('Drawing room:', room);
       this.drawRoom(room);
     });
 
@@ -278,15 +193,13 @@ export class Game {
   }
 
   private drawRoom(room: Room) {
-    const x = room.gridX * this.gridSize;
-    const y = room.gridY * this.gridSize;
-    const width = room.gridWidth * this.gridSize;
-    const height = room.gridHeight * this.gridSize;
-
-    console.log('Drawing room at:', { x, y, width, height });
+    const x = room.metadata.gridX * this.gridSize;
+    const y = room.metadata.gridY * this.gridSize;
+    const width = room.metadata.gridWidth * this.gridSize;
+    const height = room.metadata.gridHeight * this.gridSize;
 
     // Draw room background
-    this.ctx.fillStyle = room.color;
+    this.ctx.fillStyle = room.metadata.color;
     this.ctx.fillRect(x, y, width, height);
 
     // Draw room border
@@ -309,32 +222,32 @@ export class Game {
         const room2 = this.rooms[j];
 
         // Check horizontal adjacency
-        if (Math.abs((room1.gridX + room1.gridWidth) - room2.gridX) === 0 ||
-            Math.abs(room1.gridX - (room2.gridX + room2.gridWidth)) === 0) {
+        if (Math.abs((room1.metadata.gridX + room1.metadata.gridWidth) - room2.metadata.gridX) === 0 ||
+            Math.abs(room1.metadata.gridX - (room2.metadata.gridX + room2.metadata.gridWidth)) === 0) {
           // Check vertical overlap
-          const overlapStart = Math.max(room1.gridY, room2.gridY);
-          const overlapEnd = Math.min(room1.gridY + room1.gridHeight, room2.gridY + room2.gridHeight);
+          const overlapStart = Math.max(room1.metadata.gridY, room2.metadata.gridY);
+          const overlapEnd = Math.min(room1.metadata.gridY + room1.metadata.gridHeight, room2.metadata.gridY + room2.metadata.gridHeight);
           
           if (overlapEnd - overlapStart >= 2) {
             // Draw door in middle of overlap
             const doorY = Math.floor((overlapStart + overlapEnd - 2) / 2);
-            const doorX = Math.min(room1.gridX + room1.gridWidth, room2.gridX);
+            const doorX = Math.min(room1.metadata.gridX + room1.metadata.gridWidth, room2.metadata.gridX);
 
             this.drawDoorway(doorX, doorY, false);
           }
         }
 
         // Check vertical adjacency
-        if (Math.abs((room1.gridY + room1.gridHeight) - room2.gridY) === 0 ||
-            Math.abs(room1.gridY - (room2.gridY + room2.gridHeight)) === 0) {
+        if (Math.abs((room1.metadata.gridY + room1.metadata.gridHeight) - room2.metadata.gridY) === 0 ||
+            Math.abs(room1.metadata.gridY - (room2.metadata.gridY + room2.metadata.gridHeight)) === 0) {
           // Check horizontal overlap
-          const overlapStart = Math.max(room1.gridX, room2.gridX);
-          const overlapEnd = Math.min(room1.gridX + room1.gridWidth, room2.gridX + room2.gridWidth);
+          const overlapStart = Math.max(room1.metadata.gridX, room2.metadata.gridX);
+          const overlapEnd = Math.min(room1.metadata.gridX + room1.metadata.gridWidth, room2.metadata.gridX + room2.metadata.gridWidth);
           
           if (overlapEnd - overlapStart >= 2) {
             // Draw door in middle of overlap
             const doorX = Math.floor((overlapStart + overlapEnd - 2) / 2);
-            const doorY = Math.min(room1.gridY + room1.gridHeight, room2.gridY);
+            const doorY = Math.min(room1.metadata.gridY + room1.metadata.gridHeight, room2.metadata.gridY);
 
             this.drawDoorway(doorX, doorY, true);
           }
@@ -396,10 +309,10 @@ export class Game {
   }
 
   private isPositionInRoom(position: Vector2, room: Room): boolean {
-    const roomX = room.gridX * this.gridSize;
-    const roomY = room.gridY * this.gridSize;
-    const roomWidth = room.gridWidth * this.gridSize;
-    const roomHeight = room.gridHeight * this.gridSize;
+    const roomX = room.metadata.gridX * this.gridSize;
+    const roomY = room.metadata.gridY * this.gridSize;
+    const roomWidth = room.metadata.gridWidth * this.gridSize;
+    const roomHeight = room.metadata.gridHeight * this.gridSize;
 
     return (
       position.x >= roomX &&

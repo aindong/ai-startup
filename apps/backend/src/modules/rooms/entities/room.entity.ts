@@ -23,6 +23,15 @@ export class Room {
   })
   type: 'DEVELOPMENT' | 'MARKETING' | 'SALES' | 'MEETING';
 
+  @Column('jsonb')
+  metadata: {
+    gridX: number;
+    gridY: number;
+    gridWidth: number;
+    gridHeight: number;
+    color: string;
+  };
+
   @OneToMany(() => Agent, (agent) => agent.currentRoom)
   agents: Agent[];
 
