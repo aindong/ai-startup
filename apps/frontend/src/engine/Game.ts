@@ -11,6 +11,7 @@ export interface GameOptions {
 export interface Room {
   id: string;
   name: string;
+  type: 'DEVELOPMENT' | 'MARKETING' | 'SALES' | 'MEETING';
   gridX: number;
   gridY: number;
   gridWidth: number;
@@ -37,44 +38,7 @@ export class Game {
   private height: number;
   private gridSize = 32; // Size of each grid cell
   private agents: Agent[] = [];
-  private rooms: Room[] = [
-    {
-      id: 'dev',
-      name: 'Development',
-      gridX: 2,
-      gridY: 2,
-      gridWidth: 10,
-      gridHeight: 8,
-      color: '#2a4858'
-    },
-    {
-      id: 'marketing',
-      name: 'Marketing',
-      gridX: 13,
-      gridY: 2,
-      gridWidth: 8,
-      gridHeight: 6,
-      color: '#2d4b1e'
-    },
-    {
-      id: 'sales',
-      name: 'Sales',
-      gridX: 13,
-      gridY: 9,
-      gridWidth: 8,
-      gridHeight: 6,
-      color: '#4b1e1e'
-    },
-    {
-      id: 'meeting',
-      name: 'Meeting',
-      gridX: 2,
-      gridY: 11,
-      gridWidth: 10,
-      gridHeight: 4,
-      color: '#463366'
-    }
-  ];
+  private rooms: Room[] = [];
   private lastTime: number = 0;
 
   constructor(options: GameOptions) {
@@ -96,6 +60,34 @@ export class Game {
   }
 
   private initializeWebSocketListeners() {
+    // Listen for initial rooms data
+    websocketService.onInitialRooms((rooms: Room[]) => {
+      this.rooms = rooms.map(roomData => ({
+        ...roomData,
+        // Set default grid positions based on room type
+        gridX: this.getDefaultGridX(roomData.type),
+        gridY: this.getDefaultGridY(roomData.type),
+        gridWidth: this.getDefaultGridWidth(roomData.type),
+        gridHeight: this.getDefaultGridHeight(roomData.type),
+        color: this.getRoomColor(roomData.type)
+      }));
+    });
+
+    // Listen for room updates
+    websocketService.onRoomUpdated((roomData: Room) => {
+      const index = this.rooms.findIndex(r => r.id === roomData.id);
+      if (index !== -1) {
+        this.rooms[index] = {
+          ...roomData,
+          gridX: this.rooms[index].gridX,
+          gridY: this.rooms[index].gridY,
+          gridWidth: this.rooms[index].gridWidth,
+          gridHeight: this.rooms[index].gridHeight,
+          color: this.rooms[index].color
+        };
+      }
+    });
+
     // Listen for initial agents data
     websocketService.onInitialAgents((agents: AgentData[]) => {
       this.agents = agents.map(agentData => 
@@ -141,6 +133,76 @@ export class Game {
         agent.room = '';
       }
     });
+  }
+
+  private getDefaultGridX(type: string): number {
+    switch (type) {
+      case 'DEVELOPMENT':
+        return 2;
+      case 'MARKETING':
+      case 'SALES':
+        return 13;
+      case 'MEETING':
+        return 2;
+      default:
+        return 0;
+    }
+  }
+
+  private getDefaultGridY(type: string): number {
+    switch (type) {
+      case 'DEVELOPMENT':
+      case 'MARKETING':
+        return 2;
+      case 'SALES':
+        return 9;
+      case 'MEETING':
+        return 11;
+      default:
+        return 0;
+    }
+  }
+
+  private getDefaultGridWidth(type: string): number {
+    switch (type) {
+      case 'DEVELOPMENT':
+      case 'MEETING':
+        return 10;
+      case 'MARKETING':
+      case 'SALES':
+        return 8;
+      default:
+        return 6;
+    }
+  }
+
+  private getDefaultGridHeight(type: string): number {
+    switch (type) {
+      case 'DEVELOPMENT':
+        return 8;
+      case 'MARKETING':
+      case 'SALES':
+        return 6;
+      case 'MEETING':
+        return 4;
+      default:
+        return 4;
+    }
+  }
+
+  private getRoomColor(type: string): string {
+    switch (type) {
+      case 'DEVELOPMENT':
+        return '#2a4858';
+      case 'MARKETING':
+        return '#2d4b1e';
+      case 'SALES':
+        return '#4b1e1e';
+      case 'MEETING':
+        return '#463366';
+      default:
+        return '#333333';
+    }
   }
 
   public resize(width: number, height: number) {
@@ -198,7 +260,9 @@ export class Game {
   }
 
   private drawRooms() {
+    console.log('Drawing rooms:', this.rooms);
     this.rooms.forEach(room => {
+      console.log('Drawing room:', room);
       this.drawRoom(room);
     });
 
@@ -211,6 +275,8 @@ export class Game {
     const y = room.gridY * this.gridSize;
     const width = room.gridWidth * this.gridSize;
     const height = room.gridHeight * this.gridSize;
+
+    console.log('Drawing room at:', { x, y, width, height });
 
     // Draw room background
     this.ctx.fillStyle = room.color;
@@ -286,7 +352,7 @@ export class Game {
     this.ctx.strokeRect(x, y, width, height);
   }
 
-  private getAgent(id: string): Agent | undefined {
+  public getAgent(id: string): Agent | undefined {
     return this.agents.find(agent => agent.id === id);
   }
 
