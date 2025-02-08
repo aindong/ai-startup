@@ -1,18 +1,19 @@
 import { websocketService } from './websocket.service';
+import { Agent } from './agent.service';
+
+type MetadataValue = string | number | boolean | null;
+type NestedMetadataValue = MetadataValue | Record<string, MetadataValue>;
 
 export interface Task {
   id: string;
   title: string;
   description: string;
   status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
-  assignedTo?: {
-    id: string;
-    name: string;
-  } | null;
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  metadata?: {
-    [key: string]: string | number | boolean | null;
-  };
+  assignedTo?: Agent | null;
+  metadata?: Record<string, NestedMetadataValue>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateTaskDto {
@@ -20,7 +21,7 @@ export interface CreateTaskDto {
   description: string;
   priority: Task['priority'];
   assignedTo: string | null;
-  metadata?: Record<string, string | number | boolean | null>;
+  metadata?: Record<string, NestedMetadataValue>;
 }
 
 export interface UpdateTaskDto extends Partial<CreateTaskDto> {
