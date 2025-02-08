@@ -53,6 +53,10 @@ export class Game {
   private simulationSpeed: number = 1;
   private randomWalkEnabled: boolean = true;
   private debugEnabled: boolean = false;
+  private frameCount: number = 0;
+  private lastFpsUpdate: number = 0;
+  private currentFps: number = 0;
+  private readonly FPS_UPDATE_INTERVAL = 1000; // Update FPS every second
 
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
@@ -189,6 +193,14 @@ export class Game {
   public update(currentTime: number) {
     const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
     this.lastTime = currentTime;
+
+    // Update FPS counter
+    this.frameCount++;
+    if (currentTime - this.lastFpsUpdate >= this.FPS_UPDATE_INTERVAL) {
+      this.currentFps = Math.round((this.frameCount * 1000) / (currentTime - this.lastFpsUpdate));
+      this.frameCount = 0;
+      this.lastFpsUpdate = currentTime;
+    }
 
     // Update all agents with adjusted deltaTime for simulation speed
     this.agents.forEach(agent => agent.update(deltaTime * this.simulationSpeed));
@@ -424,15 +436,16 @@ export class Game {
 
     // Draw text background
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    this.ctx.fillRect(10, 10, 200, 80);
+    this.ctx.fillRect(10, 10, 200, 100); // Increased height to accommodate FPS
 
     // Draw text
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = '14px monospace';
     this.ctx.textAlign = 'left';
-    this.ctx.fillText(`Screen: (${screenX}, ${screenY})`, 20, 30);
-    this.ctx.fillText(`Grid: (${gridX}, ${gridY})`, 20, 50);
-    this.ctx.fillText(`Selected: ${this.selectedAgent?.name || 'None'}`, 20, 70);
+    this.ctx.fillText(`FPS: ${this.currentFps}`, 20, 30);
+    this.ctx.fillText(`Screen: (${screenX}, ${screenY})`, 20, 50);
+    this.ctx.fillText(`Grid: (${gridX}, ${gridY})`, 20, 70);
+    this.ctx.fillText(`Selected: ${this.selectedAgent?.name || 'None'}`, 20, 90);
 
     // Draw crosshair at mouse position
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
