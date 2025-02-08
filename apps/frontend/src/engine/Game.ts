@@ -55,8 +55,15 @@ export class Game {
     // Set canvas size
     this.resize(this.width, this.height);
 
-    // Initialize WebSocket listeners
-    this.initializeWebSocketListeners();
+    // Get token and initialize WebSocket
+    const token = localStorage.getItem('token');
+    if (token) {
+      websocketService.initialize(token);
+      // Initialize WebSocket listeners
+      this.initializeWebSocketListeners();
+    } else {
+      console.error('No authentication token found');
+    }
   }
 
   private initializeWebSocketListeners() {

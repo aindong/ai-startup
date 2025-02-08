@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Game } from './engine/Game'
+import { websocketService } from './services/websocket.service'
 
 async function login() {
   try {
@@ -62,6 +63,9 @@ function App() {
         return;
       }
 
+      // Initialize WebSocket service with token
+      websocketService.initialize(token);
+
       if (!canvasRef.current) return
 
       // Initialize game
@@ -109,6 +113,7 @@ function App() {
         if (gameRef.current) {
           gameRef.current.cleanup()
         }
+        websocketService.disconnect()
       }
     }
 
