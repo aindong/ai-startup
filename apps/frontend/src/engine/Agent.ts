@@ -49,8 +49,8 @@ export class Agent {
   private velocity: Vector2;
   public path: Vector2[] = [];
   private currentPathIndex = 0;
-  private baseSpeed = 120; // Base pixels per second
-  private currentSpeed: number;
+  public baseSpeed = 120; // Base pixels per second
+  public currentSpeed: number;
   private rooms: Room[] = []; // Reference to game rooms
   private gridSize = 32; // Reference to game grid size
   private animationTime = 0;
@@ -471,5 +471,9 @@ export class Agent {
     }
 
     return `${greeting} I'm ${this.name}. ${roleMessage} ${stateMessage}`;
+  }
+
+  public updateSpeed(speedMultiplier: number) {
+    this.currentSpeed = this.baseSpeed * speedMultiplier;
   }
 } 

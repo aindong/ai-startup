@@ -50,6 +50,9 @@ export class Game {
   private lastRandomWalkTime: number = 0;
   private randomWalkInterval: number = 3000; // Random walk every 3 seconds
   private selectedAgent: Agent | null = null;
+  private simulationSpeed: number = 1;
+  private randomWalkEnabled: boolean = true;
+  private debugEnabled: boolean = false;
 
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
@@ -187,11 +190,11 @@ export class Game {
     const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
     this.lastTime = currentTime;
 
-    // Update all agents
-    this.agents.forEach(agent => agent.update(deltaTime));
+    // Update all agents with adjusted deltaTime for simulation speed
+    this.agents.forEach(agent => agent.update(deltaTime * this.simulationSpeed));
 
     // Random walk check
-    if (currentTime - this.lastRandomWalkTime > this.randomWalkInterval) {
+    if (this.randomWalkEnabled && currentTime - this.lastRandomWalkTime > this.randomWalkInterval) {
       this.lastRandomWalkTime = currentTime;
       this.performRandomWalks();
     }
@@ -412,7 +415,7 @@ export class Game {
   }
 
   private drawMouseDebugInfo() {
-    if (!this.mousePosition) return;
+    if (!this.debugEnabled || !this.mousePosition) return;
 
     const screenX = Math.round(this.mousePosition.x);
     const screenY = Math.round(this.mousePosition.y);
@@ -533,5 +536,53 @@ export class Game {
 
     this.ctx.stroke();
     this.ctx.setLineDash([]);
+  }
+
+  public setSimulationSpeed(speed: number) {
+    this.simulationSpeed = speed;
+    // Update agent speeds using the new updateSpeed method
+    this.agents.forEach(agent => {
+      agent.updateSpeed(speed);
+    });
+  }
+
+  public toggleRandomWalk(enabled: boolean) {
+    this.randomWalkEnabled = enabled;
+    if (!enabled) {
+      // Stop all agents from random walking
+      this.agents.forEach(agent => {
+        if (!agent.isSelected) {
+          agent.path = [];
+        }
+      });
+    }
+  }
+
+  public toggleDebug(enabled: boolean) {
+    this.debugEnabled = enabled;
+  }
+
+  public resetSimulation() {
+    // Reset all agents to their initial positions
+    this.agents.forEach(agent => {
+      const room = this.rooms.find(r => r.type === agent.role.toUpperCase());
+      if (room) {
+        const x = room.metadata.gridX + Math.floor(room.metadata.gridWidth / 2);
+        const y = room.metadata.gridY + Math.floor(room.metadata.gridHeight / 2);
+        agent.setLocation({
+          room: room.id,
+          x: x,
+          y: y
+        });
+      }
+    });
+
+    // Reset all agent states
+    this.agents.forEach(agent => {
+      agent.state = 'IDLE';
+    });
+
+    // Clear selection
+    this.selectAgent(null);
   }
 } 

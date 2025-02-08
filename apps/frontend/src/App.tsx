@@ -147,7 +147,13 @@ function App() {
 
         <div className="absolute inset-0 z-10 pointer-events-none">
           <div className="relative w-full h-full">
-            <GameUI selectedAgent={selectedAgent} />
+            <GameUI 
+              selectedAgent={selectedAgent}
+              onSpeedChange={(speed) => gameRef.current?.setSimulationSpeed(speed)}
+              onRandomWalkToggle={(enabled) => gameRef.current?.toggleRandomWalk(enabled)}
+              onDebugToggle={(enabled) => gameRef.current?.toggleDebug(enabled)}
+              onReset={() => gameRef.current?.resetSimulation()}
+            />
           </div>
         </div>
       </div>

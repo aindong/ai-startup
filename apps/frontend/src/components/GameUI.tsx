@@ -1,37 +1,49 @@
+import React, { useCallback } from 'react';
 import { Agent } from '../engine/Agent';
 import { TaskList } from './TaskList';
 import { ControlPanel } from './ControlPanel';
+import { Card } from './ui/Card';
 
 interface GameUIProps {
   selectedAgent: Agent | null;
+  onSpeedChange?: (speed: number) => void;
+  onRandomWalkToggle?: (enabled: boolean) => void;
+  onDebugToggle?: (enabled: boolean) => void;
+  onReset?: () => void;
 }
 
-export function GameUI({ selectedAgent }: GameUIProps) {
-  const handleSpeedChange = (speed: string) => {
-    console.log('Speed changed:', speed);
-    // TODO: Implement speed change
-  };
+export function GameUI({ 
+  selectedAgent,
+  onSpeedChange,
+  onRandomWalkToggle,
+  onDebugToggle,
+  onReset,
+}: GameUIProps) {
+  const handleSpeedChange = useCallback((newSpeed: string) => {
+    if (onSpeedChange) {
+      // Convert speed string to multiplier
+      const multiplier = newSpeed === 'slow' ? 0.5 : newSpeed === 'fast' ? 2 : 1;
+      onSpeedChange(multiplier);
+    }
+  }, [onSpeedChange]);
 
-  const handleToggleRandomWalk = (enabled: boolean) => {
-    console.log('Random walk toggled:', enabled);
-    // TODO: Implement random walk toggle
-  };
+  const handleToggleRandomWalk = useCallback((enabled: boolean) => {
+    onRandomWalkToggle?.(enabled);
+  }, [onRandomWalkToggle]);
 
-  const handleToggleDebugInfo = (enabled: boolean) => {
-    console.log('Debug info toggled:', enabled);
-    // TODO: Implement debug info toggle
-  };
+  const handleToggleDebugInfo = useCallback((enabled: boolean) => {
+    onDebugToggle?.(enabled);
+  }, [onDebugToggle]);
 
   return (
     <div className="w-full h-full">
       <div className="absolute top-6 right-6 flex flex-col gap-6 min-w-[320px] pointer-events-auto">
         {/* Agent Info Panel */}
         {selectedAgent && (
-          <div className="w-full bg-slate-900/90 backdrop-blur shadow-xl ring-1 ring-white/10 rounded-xl p-6">
-            <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-              {selectedAgent.name}
-            </h3>
+          <Card
+            title={selectedAgent.name}
+            indicator={{ color: 'bg-emerald-400', pulse: true }}
+          >
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Role</span>
@@ -43,7 +55,7 @@ export function GameUI({ selectedAgent }: GameUIProps) {
                 <span className="text-white font-medium">{selectedAgent.state}</span>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Task List Panel */}
@@ -54,6 +66,7 @@ export function GameUI({ selectedAgent }: GameUIProps) {
           onSpeedChange={handleSpeedChange}
           onToggleRandomWalk={handleToggleRandomWalk}
           onToggleDebugInfo={handleToggleDebugInfo}
+          onResetSimulation={onReset}
         />
       </div>
     </div>
