@@ -61,21 +61,17 @@ function unflattenMetadata(items: FlatMetadataItem[]): Record<string, NestedMeta
   }, {});
 }
 
-const metadataItemSchema = z.object({
-  key: z.string().min(1, 'Key is required'),
-  value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
-});
-
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
   status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']).optional(),
   assignedTo: z.string().nullable().optional(),
-  metadata: z.array(metadataItemSchema).default([]).transform((items) => {
-    // Transform the flat metadata array into a nested object during validation
-    return unflattenMetadata(items);
-  }),
+  metadata: z.array(z.object({
+    key: z.union([z.string(), z.number()]).transform(val => String(val)),
+    value: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+    parentKey: z.string().nullable().optional(),
+  })).default([]),
 });
 
 type TaskFormData = Omit<z.infer<typeof taskSchema>, 'metadata'> & {
@@ -127,13 +123,31 @@ export function TaskForm({ task, onClose, onSuccess }: TaskFormProps) {
 
   const onSubmit = async (data: TaskFormData) => {
     try {
-      // Ensure metadata is an array before unflattening
-      const metadataArray = Array.isArray(data.metadata) ? data.metadata : [];
-      const metadata = unflattenMetadata(metadataArray);
-
       // Convert empty string to null for assignedTo
       const assignedTo = data.assignedTo || null;
 
+      // Log the raw metadata for debugging
+      console.log('Raw metadata:', data.metadata);
+
+      // Filter out empty metadata items and ensure proper structure
+      const validMetadata = data.metadata
+        .filter(item => String(item.key).trim() !== '')
+        .map(item => ({
+          ...item,
+          key: String(item.key).trim(),
+          value: item.value === '' ? null : item.value,
+          parentKey: item.parentKey ? String(item.parentKey) : null
+        }));
+
+      console.log('Filtered metadata:', validMetadata);
+
+      // Create the metadata object
+      const metadata = validMetadata.length > 0 
+        ? unflattenMetadata(validMetadata)
+        : {};
+
+      console.log('Final metadata structure:', metadata);
+      
       let result: Task;
       
       if (task) {
@@ -162,6 +176,9 @@ export function TaskForm({ task, onClose, onSuccess }: TaskFormProps) {
       onClose();
     } catch (err) {
       console.error('Failed to save task:', err);
+      if (err instanceof z.ZodError) {
+        console.error('Validation errors:', err.errors);
+      }
     }
   };
 
