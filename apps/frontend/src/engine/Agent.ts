@@ -11,11 +11,11 @@ export interface AgentOptions {
   name: string;
   role: AgentRole;
   state: AgentState;
-  position: {
+  location: {
+    room: string;
     x: number;
     y: number;
-  };
-  room: string;
+  } | null;
 }
 
 export class Agent {
@@ -23,10 +23,13 @@ export class Agent {
   public name: string;
   public role: AgentRole;
   public state: AgentState;
-  public room: string;
-  public position: Vector2;
+  public location: {
+    room: string;
+    x: number;
+    y: number;
+  };
   
-  private targetPosition: Vector2;
+  private targetLocation: Vector2;
   private velocity: Vector2;
   private path: Vector2[] = [];
   private currentPathIndex = 0;
@@ -40,52 +43,65 @@ export class Agent {
   private bounceSpeed = 5; // Bounce cycles per second
 
   constructor(options: AgentOptions, rooms: Room[], gridSize: number) {
+    console.log('🤖 Constructing agent:', options);
     this.id = options.id;
     this.name = options.name;
     this.role = options.role;
     this.state = options.state;
-    this.room = options.room;
-    this.position = new Vector2(options.position.x, options.position.y);
-    this.targetPosition = this.position.clone();
+    this.location = {
+      room: options.location?.room ?? '',
+      x: (options.location?.x ?? 0) * gridSize,
+      y: (options.location?.y ?? 0) * gridSize
+    };
+
+    console.log('📍 Setting agent location:', this.location);
+    this.targetLocation = new Vector2(this.location.x, this.location.y);
     this.velocity = Vector2.zero();
     this.rooms = rooms;
     this.gridSize = gridSize;
+    console.log('🤖 Agent constructed:', this);
   }
 
-  public getPositionData(): { x: number; y: number } {
+  public getLocation(): { room: string; x: number; y: number } {
     return {
-      x: this.position.x,
-      y: this.position.y
+      room: this.location.room,
+      x: this.location.x / this.gridSize,
+      y: this.location.y / this.gridSize
     };
   }
 
-  public setPosition(position: Vector2) {
-    this.position = position.clone();
-    this.targetPosition = position.clone();
+  public setLocation(location: { room: string; x: number; y: number }) {
+    this.location = {
+      room: location.room,
+      x: location.x * this.gridSize,
+      y: location.y * this.gridSize
+    };
+    this.targetLocation = new Vector2(this.location.x, this.location.y);
     this.path = [];
     this.isMoving = false;
   }
 
   public moveTo(target: Vector2) {
     // First try to find a path between rooms if needed
-    const path = Navigation.findRoomPath(this.position, target, this.rooms, this.gridSize);
+    const currentPos = new Vector2(this.location.x, this.location.y);
+    const path = Navigation.findRoomPath(currentPos, target, this.rooms, this.gridSize);
     
     if (path.length > 0) {
       // Use room-to-room path
       this.path = path;
       this.currentPathIndex = 0;
-      this.targetPosition = this.path[0];
+      this.targetLocation = this.path[0];
     } else {
       // Use A* pathfinding for local navigation
       const isWalkable = (pos: Vector2) => Navigation.isWalkable(pos, this.rooms, this.gridSize);
-      this.path = Pathfinding.findPath(this.position, target, isWalkable, this.gridSize);
+      this.path = Pathfinding.findPath(currentPos, target, isWalkable, this.gridSize);
       
       if (this.path.length > 0) {
         this.currentPathIndex = 0;
-        this.targetPosition = this.path[0];
+        this.targetLocation = this.path[0];
       } else {
         // If no path found, try direct movement
-        this.targetPosition = target.clone();
+        this.targetLocation = target.clone();
         this.path = [];
       }
     }
@@ -99,18 +115,20 @@ export class Agent {
     // Update animation time
     this.animationTime += deltaTime;
 
-    const distanceToTarget = this.position.distance(this.targetPosition);
+    const currentPos = new Vector2(this.location.x, this.location.y);
+    const distanceToTarget = currentPos.distance(this.targetLocation);
     const moveDistance = this.moveSpeed * deltaTime;
 
     if (distanceToTarget <= moveDistance) {
       // Reached current target
-      this.position = this.targetPosition.clone();
+      this.location.x = this.targetLocation.x;
+      this.location.y = this.targetLocation.y;
 
       if (this.path.length > 0) {
         // Move to next point in path
         this.currentPathIndex++;
         if (this.currentPathIndex < this.path.length) {
-          this.targetPosition = this.path[this.currentPathIndex];
+          this.targetLocation = this.path[this.currentPathIndex];
         } else {
           // Reached end of path
           this.isMoving = false;
@@ -122,9 +140,10 @@ export class Agent {
       }
     } else {
       // Move towards target
-      const direction = this.targetPosition.subtract(this.position).normalize();
+      const direction = this.targetLocation.subtract(currentPos).normalize();
       this.velocity = direction.multiply(this.moveSpeed);
-      this.position = this.position.add(this.velocity.multiply(deltaTime));
+      this.location.x += this.velocity.x * deltaTime;
+      this.location.y += this.velocity.y * deltaTime;
     }
   }
 
@@ -138,7 +157,8 @@ export class Agent {
       0;
 
     // Apply bounce to position
-    const renderPos = new Vector2(this.position.x, this.position.y - bounceOffset);
+    const renderPos = new Vector2(this.location.x, this.location.y - bounceOffset);
+    console.log('🎨 Rendering agent at location:', renderPos);
 
     // Draw agent circle
     ctx.beginPath();
@@ -162,7 +182,7 @@ export class Agent {
     // Draw path (for debugging)
     if (this.path.length > 0) {
       ctx.beginPath();
-      ctx.moveTo(this.position.x, this.position.y);
+      ctx.moveTo(this.location.x, this.location.y);
       this.path.slice(this.currentPathIndex).forEach(point => {
         ctx.lineTo(point.x, point.y);
       });

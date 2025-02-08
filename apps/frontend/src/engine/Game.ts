@@ -26,11 +26,11 @@ export interface AgentData {
   name: string;
   role: string;
   state: string;
-  position: {
+  location: {
+    room: string;
     x: number;
     y: number;
-  };
-  room: string;
+  } | null;
 }
 
 export class Game {
@@ -42,6 +42,7 @@ export class Game {
   private agents: Agent[] = [];
   private rooms: Room[] = [];
   private lastTime: number = 0;
+  private mousePosition: { x: number; y: number } | null = null;
 
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
@@ -57,6 +58,15 @@ export class Game {
     // Set canvas size
     this.resize(this.width, this.height);
 
+    // Add mouse move listener
+    this.canvas.addEventListener('mousemove', (event) => {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mousePosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    });
+
     // Get token and initialize WebSocket
     const token = localStorage.getItem('token');
     if (token) {
@@ -71,11 +81,13 @@ export class Game {
   private initializeWebSocketListeners() {
     // Listen for initial rooms data
     websocketService.onInitialRooms((rooms: Room[]) => {
+      console.log('🏢 Setting up rooms:', rooms);
       this.rooms = rooms;
     });
 
     // Listen for room updates
     websocketService.onRoomUpdated((roomData: Room) => {
+      console.log('🔄 Updating room:', roomData);
       const index = this.rooms.findIndex(r => r.id === roomData.id);
       if (index !== -1) {
         this.rooms[index] = roomData;
@@ -84,24 +96,35 @@ export class Game {
 
     // Listen for initial agents data
     websocketService.onInitialAgents((agents: AgentData[]) => {
-      this.agents = agents.map(agentData => 
-        new Agent({
+      console.log('👥 Setting up agents:', agents);
+      this.agents = agents.map(agentData => {
+        console.log('🤖 Creating agent:', agentData);
+        return new Agent({
           id: agentData.id,
           name: agentData.name,
           role: agentData.role as AgentOptions['role'],
           state: agentData.state as AgentOptions['state'],
-          position: agentData.position,
-          room: agentData.room
-        }, this.rooms, this.gridSize)
-      );
+          location: agentData.location ? {
+            room: agentData.location.room,
+            x: agentData.location.x,
+            y: agentData.location.y
+          } : null
+        }, this.rooms, this.gridSize);
+      });
+      console.log('👥 Agents initialized:', this.agents);
     });
 
     // Listen for agent movements
     websocketService.onAgentMoved((agentData: AgentData) => {
+      console.log('🔄 Moving agent:', agentData);
       const agent = this.getAgent(agentData.id);
-      if (agent) {
-        const newPosition = new Vector2(agentData.position.x, agentData.position.y);
-        agent.moveTo(newPosition);
+      if (agent && agentData.location) {
+        const target = new Vector2(
+          agentData.location.x * this.gridSize,
+          agentData.location.y * this.gridSize
+        );
+        console.log('📍 Moving agent to:', target);
+        agent.moveTo(target);
       }
     });
 
@@ -116,15 +139,23 @@ export class Game {
     // Listen for room changes
     websocketService.onAgentJoinedRoom(({ roomId, agent: agentData }: { roomId: string; agent: AgentData }) => {
       const agent = this.getAgent(agentData.id);
-      if (agent) {
-        agent.room = roomId;
+      if (agent && agentData.location) {
+        agent.setLocation({
+          room: roomId,
+          x: agentData.location.x,
+          y: agentData.location.y
+        });
       }
     });
 
     websocketService.onAgentLeftRoom(({ agent: agentData }: { agent: AgentData }) => {
       const agent = this.getAgent(agentData.id);
-      if (agent) {
-        agent.room = '';
+      if (agent && agentData.location) {
+        agent.setLocation({
+          room: '',
+          x: agentData.location.x,
+          y: agentData.location.y
+        });
       }
     });
   }
@@ -159,7 +190,14 @@ export class Game {
     this.drawRooms();
 
     // Draw agents
-    this.agents.forEach(agent => agent.render(this.ctx));
+    console.log('🎨 Rendering agents:', this.agents.length);
+    this.agents.forEach(agent => {
+      console.log('🎨 Rendering agent:', agent.id, agent.location);
+      agent.render(this.ctx);
+    });
+
+    // Draw mouse position debug info
+    this.drawMouseDebugInfo();
   }
 
   private drawGrid() {
@@ -287,7 +325,7 @@ export class Game {
   }
 
   public getAgentsInRoom(roomId: string) {
-    return this.agents.filter(agent => agent.room === roomId);
+    return this.agents.filter(agent => agent.location.room === roomId);
   }
 
   public cleanup() {
@@ -324,5 +362,41 @@ export class Game {
 
   private getRoomAtPosition(position: Vector2): Room | null {
     return this.rooms.find(room => this.isPositionInRoom(position, room)) || null;
+  }
+
+  private drawMouseDebugInfo() {
+    if (!this.mousePosition) return;
+
+    const screenX = Math.round(this.mousePosition.x);
+    const screenY = Math.round(this.mousePosition.y);
+    const gridX = Math.floor(screenX / this.gridSize);
+    const gridY = Math.floor(screenY / this.gridSize);
+
+    // Draw text background
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(10, 10, 200, 60);
+
+    // Draw text
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = '14px monospace';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText(`Screen: (${screenX}, ${screenY})`, 20, 30);
+    this.ctx.fillText(`Grid: (${gridX}, ${gridY})`, 20, 50);
+
+    // Draw crosshair at mouse position
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    this.ctx.lineWidth = 1;
+    
+    // Vertical line
+    this.ctx.beginPath();
+    this.ctx.moveTo(screenX, 0);
+    this.ctx.lineTo(screenX, this.height);
+    this.ctx.stroke();
+
+    // Horizontal line
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, screenY);
+    this.ctx.lineTo(this.width, screenY);
+    this.ctx.stroke();
   }
 } 

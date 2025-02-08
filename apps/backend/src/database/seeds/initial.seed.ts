@@ -20,13 +20,19 @@ const AGENT_IDS = {
   TECH_LEAD: '550e8400-e29b-41d4-a716-446655440004',
   SENIOR_DEV: '550e8400-e29b-41d4-a716-446655440005',
   MARKETING_LEAD: '550e8400-e29b-41d4-a716-446655440006',
+  SALES_LEAD: '550e8400-e29b-41d4-a716-446655440007',
+  CEO: '550e8400-e29b-41d4-a716-446655440008',
+  CTO: '550e8400-e29b-41d4-a716-446655440009',
+  ENGINEER: '550e8400-e29b-41d4-a716-446655440010',
+  MARKETER: '550e8400-e29b-41d4-a716-446655440011',
+  SALES: '550e8400-e29b-41d4-a716-446655440012',
 };
 
 export class InitialSeeder implements Seeder {
   async run(dataSource: DataSource): Promise<void> {
     // Create rooms
     const roomRepository = dataSource.getRepository(Room);
-    const rooms = await roomRepository.save([
+    await roomRepository.save([
       {
         name: 'Development',
         type: 'DEVELOPMENT',
@@ -83,8 +89,8 @@ export class InitialSeeder implements Seeder {
         state: 'WORKING',
         location: {
           room: ROOM_IDS.DEV,
-          x: 224,
-          y: 192,
+          x: 4,
+          y: 4,
         },
         metrics: {
           productivity: 0.9,
@@ -103,8 +109,8 @@ export class InitialSeeder implements Seeder {
         state: 'COLLABORATING',
         location: {
           room: ROOM_IDS.DEV,
-          x: 160,
-          y: 192,
+          x: 6,
+          y: 5,
         },
         metrics: {
           productivity: 0.85,
@@ -123,8 +129,8 @@ export class InitialSeeder implements Seeder {
         state: 'THINKING',
         location: {
           room: ROOM_IDS.MARKETING,
-          x: 544,
-          y: 160,
+          x: 15,
+          y: 4,
         },
         metrics: {
           productivity: 0.8,
@@ -132,6 +138,106 @@ export class InitialSeeder implements Seeder {
           decisionQuality: 0.9,
           taskCompletionRate: 0.8,
           breakTimeEfficiency: 0.85,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.SALES_LEAD,
+        name: 'Sales Lead',
+        role: 'SALES' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.SALES,
+          x: 16,
+          y: 11,
+        },
+        metrics: {
+          productivity: 0.85,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.85,
+          breakTimeEfficiency: 0.8,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.CEO,
+        name: 'CEO',
+        role: 'CEO' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.MEETING,
+          x: 4,
+          y: 12,
+        },
+        metrics: {
+          productivity: 0.9,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.9,
+          breakTimeEfficiency: 0.7,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.CTO,
+        name: 'CTO',
+        role: 'CTO' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.MEETING,
+          x: 6,
+          y: 12,
+        },
+        metrics: {
+          productivity: 0.9,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.9,
+          breakTimeEfficiency: 0.7,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.ENGINEER,
+        name: 'Engineer',
+        role: 'ENGINEER' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.DEV,
+          x: 8,
+          y: 6,
+        },
+        metrics: {
+          productivity: 0.9,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.9,
+          breakTimeEfficiency: 0.7,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.MARKETER,
+        name: 'Marketer',
+        role: 'MARKETER' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.MARKETING,
+          x: 17,
+          y: 5,
+        },
+        metrics: {
+          productivity: 0.9,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.9,
+          breakTimeEfficiency: 0.7,
         },
         lastStateChange: new Date(),
         lastBreakTime: new Date(),
