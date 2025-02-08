@@ -4,7 +4,6 @@ import { Room } from '../engine/Game';
 import { Card } from './ui/Card';
 import { TaskList } from './TaskList';
 import { ControlPanel } from './ControlPanel';
-import { Chat } from './Chat';
 import { ChatSidebar } from './ChatSidebar';
 
 interface GameUIProps {
@@ -34,9 +33,6 @@ export function GameUI({
 
   const handleChannelSelect = (channelId: string, type: 'room' | 'agent') => {
     setSelectedChannel({ id: channelId, type });
-    if (!isChatOpen) {
-      setIsChatOpen(true);
-    }
   };
 
   // Convert agents to the format expected by ChatSidebar
@@ -58,53 +54,40 @@ export function GameUI({
 
   return (
     <div className="w-full h-full pointer-events-none">
-      {/* Right side UI */}
-      <div className="absolute top-6 right-6 flex flex-col gap-6 pointer-events-auto w-[400px]">
-        {/* Agent Info & Task List */}
-        <div className="space-y-6">
-          {selectedAgent && (
-            <Card title={selectedAgent.name}>
-              <p className="text-slate-300">{selectedAgent.getSelectionMessage()}</p>
-            </Card>
-          )}
-          <TaskList />
-        </div>
+      <div className="fixed top-6 right-6 flex gap-6 pointer-events-auto">
+        {/* Left side - Tasks & Controls */}
+        <div className="w-[350px] space-y-6">
+          {/* Agent Info & Task List */}
+          <div className="space-y-6">
+            {selectedAgent && (
+              <Card title={selectedAgent.name}>
+                <p className="text-slate-300">{selectedAgent.getSelectionMessage()}</p>
+              </Card>
+            )}
+            <TaskList />
+          </div>
 
-        {/* Control Panel */}
-        <ControlPanel
-          onSpeedChange={(speed) => onSpeedChange(parseFloat(speed))}
-          onToggleRandomWalk={onRandomWalkToggle}
-          onToggleDebugInfo={onDebugToggle}
-          onResetSimulation={onReset}
-        />
-      </div>
-
-      {/* Chat UI */}
-      <div className="absolute top-6 right-[424px] bottom-6 pointer-events-auto">
-        <ChatSidebar
-          isOpen={isChatOpen}
-          onToggle={() => setIsChatOpen(!isChatOpen)}
-          rooms={roomList}
-          agents={agentList}
-          selectedChannelId={selectedChannel?.id}
-          onSelectChannel={handleChannelSelect}
-        />
-      </div>
-
-      {/* Active Chat */}
-      {isChatOpen && selectedChannel && (
-        <div className="absolute bottom-6 right-[424px] pointer-events-auto w-[400px]">
-          <Chat
-            channelId={selectedChannel.id}
-            channelType={selectedChannel.type}
-            channelName={
-              selectedChannel.type === 'room'
-                ? rooms.find((r) => r.id === selectedChannel.id)?.name || ''
-                : agents.find((a) => a.id === selectedChannel.id)?.name || ''
-            }
+          {/* Control Panel */}
+          <ControlPanel
+            onSpeedChange={(speed) => onSpeedChange(parseFloat(speed))}
+            onToggleRandomWalk={onRandomWalkToggle}
+            onToggleDebugInfo={onDebugToggle}
+            onResetSimulation={onReset}
           />
         </div>
-      )}
+
+        {/* Right side - Chat UI */}
+        <div className="w-[350px] flex flex-col gap-6">
+          <ChatSidebar
+              isOpen={isChatOpen}
+              onToggle={() => setIsChatOpen(!isChatOpen)}
+              rooms={roomList}
+              agents={agentList}
+              selectedChannelId={selectedChannel?.id}
+              onSelectChannel={handleChannelSelect}
+            />
+        </div>
+      </div>
     </div>
   );
 } 
