@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { Task } from '../services/task.service';
 import { useAgents } from '../hooks/useAgents';
 import { useCreateTask, useUpdateTask } from '../hooks/useTasks';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Helper functions for metadata handling
 type MetadataValue = string | number | boolean | null;
@@ -98,6 +98,7 @@ export function TaskForm({ task, onClose, onSuccess }: TaskFormProps) {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -120,6 +121,13 @@ export function TaskForm({ task, onClose, onSuccess }: TaskFormProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const watchAssignedTo = watch('assignedTo');
+
+  // Update assignedTo when agents are loaded
+  useEffect(() => {
+    if (task?.assignedTo?.id && agents.length > 0) {
+      setValue('assignedTo', task.assignedTo.id);
+    }
+  }, [task?.assignedTo?.id, agents, setValue]);
 
   const onSubmit = async (data: TaskFormData) => {
     try {
