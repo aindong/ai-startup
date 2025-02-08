@@ -93,9 +93,6 @@ export class Game {
 
     // Initialize WebSocket listeners
     this.initializeWebSocketListeners();
-
-    // Initialize some test agents
-    this.initializeTestAgents();
   }
 
   private initializeWebSocketListeners() {
@@ -287,49 +284,6 @@ export class Game {
     this.ctx.strokeStyle = '#ffffff';
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(x, y, width, height);
-  }
-
-  private initializeTestAgents() {
-    // Add some test agents
-    const testAgents: AgentOptions[] = [
-      {
-        id: '1',
-        name: 'Tech Lead',
-        role: 'CTO',
-        state: 'WORKING',
-        position: {
-          x: (2 + 5) * this.gridSize,
-          y: (2 + 4) * this.gridSize
-        },
-        room: 'dev'
-      },
-      {
-        id: '2',
-        name: 'Senior Dev',
-        role: 'ENGINEER',
-        state: 'COLLABORATING',
-        position: {
-          x: (2 + 3) * this.gridSize,
-          y: (2 + 4) * this.gridSize
-        },
-        room: 'dev'
-      },
-      {
-        id: '3',
-        name: 'Marketing Lead',
-        role: 'MARKETER',
-        state: 'THINKING',
-        position: {
-          x: (13 + 4) * this.gridSize,
-          y: (2 + 3) * this.gridSize
-        },
-        room: 'marketing'
-      }
-    ];
-
-    this.agents = testAgents.map(agentData => 
-      new Agent(agentData, this.rooms, this.gridSize)
-    );
   }
 
   private getAgent(id: string): Agent | undefined {

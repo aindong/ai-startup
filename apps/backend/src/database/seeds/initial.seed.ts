@@ -5,231 +5,205 @@ import { Room } from '../../modules/rooms/entities/room.entity';
 import { CollaborationSession } from '../../modules/collaboration/entities/collaboration-session.entity';
 import { VotingSession } from '../../modules/collaboration/entities/voting-session.entity';
 import { Seeder } from '../seeder.interface';
+import { AgentRole } from '@ai-startup/shared';
 
-interface Identifier {
-  id: string;
-}
+// Room IDs as UUIDs
+const ROOM_IDS = {
+  DEV: '550e8400-e29b-41d4-a716-446655440000',
+  MARKETING: '550e8400-e29b-41d4-a716-446655440001',
+  SALES: '550e8400-e29b-41d4-a716-446655440002',
+  MEETING: '550e8400-e29b-41d4-a716-446655440003',
+};
+
+// Agent IDs as UUIDs
+const AGENT_IDS = {
+  TECH_LEAD: '550e8400-e29b-41d4-a716-446655440004',
+  SENIOR_DEV: '550e8400-e29b-41d4-a716-446655440005',
+  MARKETING_LEAD: '550e8400-e29b-41d4-a716-446655440006',
+};
 
 export class InitialSeeder implements Seeder {
   async run(dataSource: DataSource): Promise<void> {
-    // Create rooms
-    const rooms = await dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(Room)
-      .values([
-        {
-          name: 'Development Room',
-          type: 'DEVELOPMENT',
-        },
-        {
-          name: 'Marketing Room',
-          type: 'MARKETING',
-        },
-        {
-          name: 'Sales Room',
-          type: 'SALES',
-        },
-        {
-          name: 'Meeting Room',
-          type: 'MEETING',
-        },
-      ])
-      .execute();
+    // First seed rooms
+    const roomRepository = dataSource.getRepository(Room);
+    await roomRepository.save([
+      {
+        id: ROOM_IDS.DEV,
+        name: 'Development',
+        type: 'DEVELOPMENT',
+      },
+      {
+        id: ROOM_IDS.MARKETING,
+        name: 'Marketing',
+        type: 'MARKETING',
+      },
+      {
+        id: ROOM_IDS.SALES,
+        name: 'Sales',
+        type: 'SALES',
+      },
+      {
+        id: ROOM_IDS.MEETING,
+        name: 'Meeting',
+        type: 'MEETING',
+      },
+    ]);
 
-    const roomIds = rooms.identifiers as Identifier[];
-
-    // Create agents
-    const agents = await dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(Agent)
-      .values([
-        {
-          name: 'Tech Lead',
-          role: 'CTO',
-          state: 'IDLE',
-          location: {
-            room: roomIds[0].id,
-            x: 100,
-            y: 100,
-          },
-          metrics: {
-            productivity: 0.9,
-            collaboration: 0.85,
-            decisionQuality: 0.95,
-            taskCompletionRate: 0.88,
-            breakTimeEfficiency: 0.92,
-          },
+    // Then seed agents
+    const agentRepository = dataSource.getRepository(Agent);
+    const agents = await agentRepository.save([
+      {
+        id: AGENT_IDS.TECH_LEAD,
+        name: 'Tech Lead',
+        role: 'CTO' as AgentRole,
+        state: 'WORKING',
+        location: {
+          room: ROOM_IDS.DEV,
+          x: 224,
+          y: 192,
         },
-        {
-          name: 'Senior Engineer',
-          role: 'ENGINEER',
-          state: 'WORKING',
-          location: {
-            room: roomIds[0].id,
-            x: 200,
-            y: 100,
-          },
-          metrics: {
-            productivity: 0.85,
-            collaboration: 0.8,
-            decisionQuality: 0.9,
-            taskCompletionRate: 0.85,
-            breakTimeEfficiency: 0.88,
-          },
+        metrics: {
+          productivity: 0.9,
+          collaboration: 0.8,
+          decisionQuality: 0.85,
+          taskCompletionRate: 0.9,
+          breakTimeEfficiency: 0.7,
         },
-        {
-          name: 'Marketing Manager',
-          role: 'MARKETER',
-          state: 'IDLE',
-          location: {
-            room: roomIds[1].id,
-            x: 100,
-            y: 100,
-          },
-          metrics: {
-            productivity: 0.87,
-            collaboration: 0.92,
-            decisionQuality: 0.88,
-            taskCompletionRate: 0.9,
-            breakTimeEfficiency: 0.85,
-          },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.SENIOR_DEV,
+        name: 'Senior Dev',
+        role: 'ENGINEER' as AgentRole,
+        state: 'COLLABORATING',
+        location: {
+          room: ROOM_IDS.DEV,
+          x: 160,
+          y: 192,
         },
-        {
-          name: 'Sales Representative',
-          role: 'SALES',
-          state: 'COLLABORATING',
-          location: {
-            room: roomIds[2].id,
-            x: 100,
-            y: 100,
-          },
-          metrics: {
-            productivity: 0.82,
-            collaboration: 0.95,
-            decisionQuality: 0.85,
-            taskCompletionRate: 0.87,
-            breakTimeEfficiency: 0.9,
-          },
+        metrics: {
+          productivity: 0.85,
+          collaboration: 0.9,
+          decisionQuality: 0.8,
+          taskCompletionRate: 0.85,
+          breakTimeEfficiency: 0.8,
         },
-      ])
-      .execute();
-
-    const agentIds = agents.identifiers as Identifier[];
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+      {
+        id: AGENT_IDS.MARKETING_LEAD,
+        name: 'Marketing Lead',
+        role: 'MARKETER' as AgentRole,
+        state: 'THINKING',
+        location: {
+          room: ROOM_IDS.MARKETING,
+          x: 544,
+          y: 160,
+        },
+        metrics: {
+          productivity: 0.8,
+          collaboration: 0.85,
+          decisionQuality: 0.9,
+          taskCompletionRate: 0.8,
+          breakTimeEfficiency: 0.85,
+        },
+        lastStateChange: new Date(),
+        lastBreakTime: new Date(),
+      },
+    ]);
 
     // Create tasks
-    const tasks = await dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(AgentTask)
-      .values([
-        {
-          title: 'Implement Authentication System',
-          description: 'Set up JWT authentication for the API endpoints',
-          status: 'IN_PROGRESS',
-          assignedTo: { id: agentIds[1].id },
-          createdBy: { id: agentIds[0].id },
-          priority: 'HIGH',
-          metadata: () =>
-            `'${JSON.stringify({
-              estimatedHours: 8,
-              technicalDetails: {
-                framework: 'NestJS',
-                security: 'JWT',
-              },
-            })}'`,
+    const taskRepository = dataSource.getRepository(AgentTask);
+    const tasks = await taskRepository.save([
+      {
+        title: 'Implement Authentication System',
+        description: 'Set up JWT authentication for the API endpoints',
+        status: 'IN_PROGRESS',
+        assignedTo: agents[1], // Senior Dev
+        createdBy: agents[0], // Tech Lead
+        priority: 'HIGH',
+        metadata: {
+          estimatedHours: 8,
+          technicalDetails: {
+            framework: 'NestJS',
+            security: 'JWT',
+          },
         },
-        {
-          title: 'Create Marketing Campaign',
-          description: 'Design and launch Q1 marketing campaign',
-          status: 'TODO',
-          assignedTo: { id: agentIds[2].id },
-          createdBy: { id: agentIds[0].id },
-          priority: 'MEDIUM',
-          metadata: () =>
-            `'${JSON.stringify({
-              budget: 5000,
-              channels: ['social', 'email', 'content'],
-            })}'`,
+      },
+      {
+        title: 'Create Marketing Campaign',
+        description: 'Design and launch Q1 marketing campaign',
+        status: 'TODO',
+        assignedTo: agents[2], // Marketing Lead
+        createdBy: agents[0], // Tech Lead
+        priority: 'MEDIUM',
+        metadata: {
+          budget: 5000,
+          channels: ['social', 'email', 'content'],
         },
-        {
-          title: 'Client Presentation',
-          description: 'Prepare and deliver product demo to potential client',
-          status: 'TODO',
-          assignedTo: { id: agentIds[3].id },
-          createdBy: { id: agentIds[0].id },
-          priority: 'HIGH',
-          metadata: () =>
-            `'${JSON.stringify({
-              clientName: 'TechCorp Inc',
-              meetingDate: '2024-02-15T10:00:00Z',
-            })}'`,
+      },
+      {
+        title: 'Client Presentation',
+        description: 'Prepare and deliver product demo to potential client',
+        status: 'TODO',
+        assignedTo: agents[2], // Marketing Lead
+        createdBy: agents[0], // Tech Lead
+        priority: 'HIGH',
+        metadata: {
+          clientName: 'TechCorp Inc',
+          meetingDate: '2024-02-15T10:00:00Z',
         },
-      ])
-      .execute();
-
-    const taskIds = tasks.identifiers as Identifier[];
+      },
+    ]);
 
     // Create collaboration session
-    await dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(CollaborationSession)
-      .values([
+    const collaborationRepository =
+      dataSource.getRepository(CollaborationSession);
+    const collaboration = await collaborationRepository.save({
+      type: 'TASK_HELP',
+      initiator: agents[1], // Senior Dev
+      participants: [agents[0]], // Tech Lead
+      status: 'ACTIVE',
+      context: {
+        taskId: tasks[0].id,
+        description: 'Need help with authentication implementation',
+      },
+      votes: [
         {
-          type: 'TASK_HELP',
-          initiator: { id: agentIds[1].id },
-          participants: [{ id: agentIds[0].id }],
-          status: 'ACTIVE',
-          context: () =>
-            `'${JSON.stringify({
-              taskId: taskIds[0].id,
-              description: 'Need help with authentication implementation',
-            })}'`,
-          votes: () =>
-            `'${JSON.stringify([
-              {
-                agentId: agentIds[0].id,
-                vote: 'APPROVE',
-                reason: 'Available to help with technical guidance',
-                timestamp: new Date(),
-              },
-            ])}'`,
-          startTime: new Date(),
+          agentId: agents[0].id,
+          vote: 'APPROVE',
+          reason: 'Available to help with technical guidance',
+          timestamp: new Date(),
         },
-      ])
-      .execute();
+      ],
+      startTime: new Date(),
+    });
 
     // Create voting session
-    await dataSource
-      .createQueryBuilder()
-      .insert()
-      .into(VotingSession)
-      .values([
+    const votingRepository = dataSource.getRepository(VotingSession);
+    await votingRepository.save({
+      collaboration: collaboration,
+      topic: 'Authentication Method Decision',
+      description: 'Choose the best authentication method for our system',
+      options: [
         {
-          topic: 'Authentication Method Decision',
-          description: 'Choose the best authentication method for our system',
-          options: () =>
-            `'${JSON.stringify([
-              {
-                id: '1',
-                description: 'JWT with refresh tokens',
-                pros: ['Stateless', 'Scalable'],
-                cons: ['Token size', "Can't revoke immediately"],
-              },
-              {
-                id: '2',
-                description: 'Session-based with Redis',
-                pros: ['Revokable', 'Smaller payload'],
-                cons: ['Additional infrastructure', 'State management'],
-              },
-            ])}'`,
-          votes: () => `'${JSON.stringify([])}'`,
-          status: 'OPEN',
-          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+          id: '1',
+          description: 'JWT with refresh tokens',
+          pros: ['Stateless', 'Scalable'],
+          cons: ['Token size', "Can't revoke immediately"],
         },
-      ])
-      .execute();
+        {
+          id: '2',
+          description: 'Session-based with Redis',
+          pros: ['Revokable', 'Smaller payload'],
+          cons: ['Additional infrastructure', 'State management'],
+        },
+      ],
+      votes: [],
+      status: 'OPEN',
+      deadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+    });
   }
 }
