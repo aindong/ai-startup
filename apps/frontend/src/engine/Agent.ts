@@ -33,7 +33,8 @@ export class Agent {
   private velocity: Vector2;
   private path: Vector2[] = [];
   private currentPathIndex = 0;
-  private moveSpeed = 120; // pixels per second
+  private baseSpeed = 120; // Base pixels per second
+  private currentSpeed: number;
   private size = 24; // Size of the agent circle
   private isMoving = false;
   private rooms: Room[] = []; // Reference to game rooms
@@ -48,17 +49,15 @@ export class Agent {
     this.name = options.name;
     this.role = options.role;
     this.state = options.state;
-    this.location = {
-      room: options.location?.room ?? '',
-      x: (options.location?.x ?? 0) * gridSize,
-      y: (options.location?.y ?? 0) * gridSize
-    };
-
-    console.log('📍 Setting agent location:', this.location);
-    this.targetLocation = new Vector2(this.location.x, this.location.y);
-    this.velocity = Vector2.zero();
+    this.location = options.location || { room: '', x: 0, y: 0 };
     this.rooms = rooms;
     this.gridSize = gridSize;
+    this.targetLocation = new Vector2(
+      this.location.x * gridSize,
+      this.location.y * gridSize
+    );
+    this.velocity = Vector2.zero();
+    this.currentSpeed = this.baseSpeed * (0.8 + Math.random() * 0.4); // Random speed variation
     console.log('🤖 Agent constructed:', this);
   }
 
@@ -110,89 +109,65 @@ export class Agent {
   }
 
   public update(deltaTime: number) {
-    if (!this.isMoving) return;
+    if (this.isMoving) {
+      // Update position based on velocity and deltaTime
+      const currentPos = new Vector2(
+        this.location.x * this.gridSize,
+        this.location.y * this.gridSize
+      );
+      
+      const toTarget = this.targetLocation.subtract(currentPos);
+      const distance = toTarget.magnitude();
+      
+      if (distance < 1) {
+        // Reached target
+        this.location.x = this.targetLocation.x / this.gridSize;
+        this.location.y = this.targetLocation.y / this.gridSize;
+        this.isMoving = false;
+        this.velocity = Vector2.zero();
+      } else {
+        // Move towards target
+        this.velocity = toTarget.normalize().multiply(this.currentSpeed);
+        const movement = this.velocity.multiply(deltaTime);
+        
+        // Update location
+        this.location.x = (currentPos.x + movement.x) / this.gridSize;
+        this.location.y = (currentPos.y + movement.y) / this.gridSize;
+      }
+    }
 
     // Update animation time
     this.animationTime += deltaTime;
-
-    const currentPos = new Vector2(this.location.x, this.location.y);
-    const distanceToTarget = currentPos.distance(this.targetLocation);
-    const moveDistance = this.moveSpeed * deltaTime;
-
-    if (distanceToTarget <= moveDistance) {
-      // Reached current target
-      this.location.x = this.targetLocation.x;
-      this.location.y = this.targetLocation.y;
-
-      if (this.path.length > 0) {
-        // Move to next point in path
-        this.currentPathIndex++;
-        if (this.currentPathIndex < this.path.length) {
-          this.targetLocation = this.path[this.currentPathIndex];
-        } else {
-          // Reached end of path
-          this.isMoving = false;
-          this.path = [];
-        }
-      } else {
-        // Reached final target
-        this.isMoving = false;
-      }
-    } else {
-      // Move towards target
-      const direction = this.targetLocation.subtract(currentPos).normalize();
-      this.velocity = direction.multiply(this.moveSpeed);
-      this.location.x += this.velocity.x * deltaTime;
-      this.location.y += this.velocity.y * deltaTime;
-    }
   }
 
   public render(ctx: CanvasRenderingContext2D) {
-    // Save context state
-    ctx.save();
+    const screenX = this.location.x * this.gridSize;
+    const screenY = this.location.y * this.gridSize;
 
     // Calculate bounce offset
     const bounceOffset = this.isMoving ? 
-      Math.sin(this.animationTime * this.bounceSpeed * Math.PI * 2) * this.bounceHeight : 
-      0;
+      Math.sin(this.animationTime * this.bounceSpeed * Math.PI * 2) * this.bounceHeight : 0;
 
-    // Apply bounce to position
-    const renderPos = new Vector2(this.location.x, this.location.y - bounceOffset);
-    console.log('🎨 Rendering agent at location:', renderPos);
-
-    // Draw agent circle
+    // Draw shadow
     ctx.beginPath();
-    ctx.arc(renderPos.x, renderPos.y, this.size / 2, 0, Math.PI * 2);
-    ctx.fillStyle = this.getRoleColor();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.ellipse(screenX, screenY + this.size/2, this.size/2, this.size/4, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.closePath();
 
-    // Draw state indicator
-    this.drawStateIndicator(ctx, renderPos);
+    // Draw agent circle with role color
+    ctx.beginPath();
+    ctx.fillStyle = this.getRoleColor();
+    ctx.arc(screenX, screenY - bounceOffset, this.size/2, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Draw name label
+    // Draw agent name
     ctx.fillStyle = '#ffffff';
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(this.name, renderPos.x, renderPos.y + this.size);
+    ctx.fillText(this.name, screenX, screenY - this.size - bounceOffset);
 
-    // Draw path (for debugging)
-    if (this.path.length > 0) {
-      ctx.beginPath();
-      ctx.moveTo(this.location.x, this.location.y);
-      this.path.slice(this.currentPathIndex).forEach(point => {
-        ctx.lineTo(point.x, point.y);
-      });
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // Restore context state
-    ctx.restore();
+    // Draw state indicator
+    this.drawStateIndicator(ctx, new Vector2(screenX, screenY - bounceOffset));
   }
 
   private getRoleColor(): string {

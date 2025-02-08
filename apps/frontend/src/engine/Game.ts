@@ -43,6 +43,8 @@ export class Game {
   private rooms: Room[] = [];
   private lastTime: number = 0;
   private mousePosition: { x: number; y: number } | null = null;
+  private lastRandomWalkTime: number = 0;
+  private randomWalkInterval: number = 3000; // Random walk every 3 seconds
 
   constructor(options: GameOptions) {
     this.canvas = options.canvas;
@@ -173,6 +175,34 @@ export class Game {
 
     // Update all agents
     this.agents.forEach(agent => agent.update(deltaTime));
+
+    // Random walk check
+    if (currentTime - this.lastRandomWalkTime > this.randomWalkInterval) {
+      this.lastRandomWalkTime = currentTime;
+      this.performRandomWalks();
+    }
+  }
+
+  private performRandomWalks() {
+    this.agents.forEach(agent => {
+      // 30% chance to move
+      if (Math.random() < 0.3) {
+        const room = this.rooms.find(r => r.id === agent.location.room);
+        if (room) {
+          // Calculate random position within the room
+          const randomX = Math.floor(Math.random() * room.metadata.gridWidth) + room.metadata.gridX;
+          const randomY = Math.floor(Math.random() * room.metadata.gridHeight) + room.metadata.gridY;
+          
+          console.log(`🚶 Agent ${agent.name} random walking to:`, { x: randomX, y: randomY });
+          
+          // Move agent to new position
+          agent.moveTo(new Vector2(
+            randomX * this.gridSize,
+            randomY * this.gridSize
+          ));
+        }
+      }
+    });
   }
 
   public render(currentTime: number) {
@@ -190,9 +220,7 @@ export class Game {
     this.drawRooms();
 
     // Draw agents
-    console.log('🎨 Rendering agents:', this.agents.length);
     this.agents.forEach(agent => {
-      console.log('🎨 Rendering agent:', agent.id, agent.location);
       agent.render(this.ctx);
     });
 
