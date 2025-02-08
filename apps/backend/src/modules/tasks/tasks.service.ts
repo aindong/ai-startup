@@ -253,23 +253,11 @@ export class TasksService {
     newStatus: AgentTask['status'],
     hasAssignee: boolean,
   ): void {
+    // Only validate that non-TODO statuses require an assignee
     if (!hasAssignee && newStatus !== 'TODO') {
       throw new TaskStatusException('Cannot change status of unassigned task');
     }
-
-    const validTransitions: Record<AgentTask['status'], AgentTask['status'][]> =
-      {
-        TODO: ['IN_PROGRESS'],
-        IN_PROGRESS: ['REVIEW', 'DONE'],
-        REVIEW: ['IN_PROGRESS', 'DONE'],
-        DONE: ['TODO'], // Allow reopening tasks
-      };
-
-    if (!validTransitions[currentStatus].includes(newStatus)) {
-      throw new TaskStatusException(
-        `Invalid status transition from ${currentStatus} to ${newStatus}`,
-      );
-    }
+    // Allow any other status transition
   }
 
   async assignToAgent(taskId: string, agentId: string): Promise<AgentTask> {
