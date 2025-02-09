@@ -4,8 +4,6 @@ import { Button } from './ui/Button';
 import { Message } from '../services/chat.service';
 
 interface ChatSidebarProps {
-  isOpen: boolean;
-  onToggle: () => void;
   rooms: Array<{
     id: string;
     name: string;
@@ -24,8 +22,6 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({
-  isOpen,
-  onToggle,
   rooms,
   agents,
   selectedChannelId,
@@ -66,39 +62,16 @@ export function ChatSidebar({
     setNewMessage('');
   };
 
-  if (!isOpen) {
-    return (
-      <Button
-        variant="ghost"
-        className="w-10 h-10 flex items-center justify-center"
-        onClick={onToggle}
-      >
-        Open Chat
-      </Button>
-    );
-  }
-
   return (
     <Card className="h-[calc(100vh-3rem)] flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-slate-800 space-y-4">
         {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          {view === 'list' ? (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={onToggle}>
-                Close
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                Back
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onToggle}>
-                Close
-              </Button>
-            </div>
+        <div className="flex items-center">
+          {view === 'chat' && (
+            <Button variant="ghost" size="sm" onClick={handleBack}>
+              Back
+            </Button>
           )}
         </div>
 
